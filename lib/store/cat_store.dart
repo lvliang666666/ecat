@@ -226,6 +226,65 @@ class CatStore extends ChangeNotifier {
         .fold(0.0, (s, f) => s + f.amount);
   }
 
+  /// 统计：最近 n 天的喂食总量（饮水除外），按天分组（key = yyyy-MM-dd）
+  /// 返回 [每天克数, 每天记录数]；只含有记录的天
+  Map<String, double> foodGramsByDay(int days, [DateTime? now]) {
+    final n = now ?? DateTime.now();
+    final start = DateTime(n.year, n.month, n.day)
+        .subtract(Duration(days: days - 1));
+    final result = <String, double>{};
+    for (final f in feeds) {
+      if (f.type == '饮水') continue;
+      final day = DateTime(f.time.year, f.time.month, f.time.day);
+      if (day.isBefore(start)) continue;
+      final key =
+          '${f.time.year}-${f.time.month.toString().padLeft(2, '0')}-${f.time.day.toString().padLeft(2, '0')}';
+      result[key] = (result[key] ?? 0) + f.amount;
+    }
+    return result;
+  }
+
+  /// 统计：最近 n 天喂食总量（饮水除外）
+  double foodGramsInDays(int days, [DateTime? now]) {
+    final n = now ?? DateTime.now();
+    final start = DateTime(n.year, n.month, n.day)
+        .subtract(Duration(days: days - 1));
+    return feeds
+        .where((f) =>
+            f.type != '饮水' &&
+            !DateTime(f.time.year, f.time.month, f.time.day).isBefore(start))
+        .fold(0.0, (s, f) => s + f.amount);
+  }
+
+  /// 体重周报：最近 7 天内与上一个 7 天的体重对比。
+  /// 返回 null 表示没有足够数据（最近 7 天无记录）。
+  /// [latestInPeriod, diff]：diff = 最近体重 - 上期体重（上期无记录时为 null）
+  (WeightLog, double?)? weeklyWeightReport([DateTime? now]) {
+    final n = now ?? DateTime.now();
+    final today = DateTime(n.year, n.month, n.day);
+    final weekStart = today.subtract(const Duration(days: 6));
+    final lastWeekStart = weekStart.subtract(const Duration(days: 7));
+
+    WeightLog? latest;
+    for (final w in weights) {
+      final day = DateTime(w.date.year, w.date.month, w.date.day);
+      if (!day.isBefore(weekStart)) {
+        if (latest == null || w.date.isAfter(latest.date)) latest = w;
+      }
+    }
+    if (latest == null) return null;
+
+    // 上期（8~14 天前）最新一条
+    WeightLog? prev;
+    for (final w in weights) {
+      final day = DateTime(w.date.year, w.date.month, w.date.day);
+      if (!day.isBefore(lastWeekStart) && day.isBefore(weekStart)) {
+        if (prev == null || w.date.isAfter(prev.date)) prev = w;
+      }
+    }
+    return (latest, prev == null ? null : latest.weight - prev.weight);
+  }
+
   static bool _sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 }

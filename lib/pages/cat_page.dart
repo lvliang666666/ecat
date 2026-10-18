@@ -13,6 +13,7 @@ import '../store/cat_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import 'backup_page.dart';
+import 'stats_page.dart';
 
 // ==================== 私有小工具 ====================
 
@@ -140,6 +141,35 @@ class _CatPageState extends State<CatPage> {
                     ),
                   ),
                 ),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const StatsPage()),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: AppColors.cream,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('📊', style: TextStyle(fontSize: 14)),
+                        SizedBox(width: 6),
+                        Text(
+                          '统计',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSub,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const BackupPage()),
