@@ -95,7 +95,9 @@ Tag 命名：`v<版本号>`，打在 release 提交上。
 2. 更新 `pubspec.yaml` 的版本号（构建号 +1）
 3. 提交：`release: 发布 v<版本号>`（只含版本号变更）
 4. 打 tag：`git tag -a v<版本号> -m "发布 v<版本号>"`
-5. 构建产物并归档（产物命名带版本号，如 `ecat-v1.1.0-windows.zip`）
+5. 构建产物并归档到项目根目录 `releases/`
+   （命名 `<项目名>-v<版本号>-<平台>.<扩展名>`，如 `releases/ecat-v1.3.0-android.apk`；
+   `releases/` 已加入 .gitignore，产物不进 git）
 
 ## 6. 历史版本记录
 
