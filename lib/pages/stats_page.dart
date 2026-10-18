@@ -69,6 +69,10 @@ class _StatsPageState extends State<StatsPage> {
             ),
             const SizedBox(height: 20),
 
+            // ---- 统计对象：当前猫咪标识条 ----
+            _catBanner(store),
+            const SizedBox(height: 20),
+
             // ---- 体重周报 ----
             _weightReportCard(store),
             const SizedBox(height: 20),
@@ -81,6 +85,43 @@ class _StatsPageState extends State<StatsPage> {
             _feedBarChartCard(store, now),
           ],
         ),
+      ),
+    );
+  }
+
+  /// 统计对象标识条：明确当前统计的是哪只猫（多猫切换在首页/猫咪页）
+  Widget _catBanner(CatStore store) {
+    final cat = store.currentCat;
+    final multi = store.cats.length > 1;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.pinkLight.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          CatAvatar(emoji: cat?.avatar ?? '🐱', size: 36, photoPath: cat?.photoPath),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              cat == null
+                  ? '还没有猫咪档案，以下为空数据'
+                  : '以下是「${cat.name}」的统计数据',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textMain,
+              ),
+            ),
+          ),
+          if (multi)
+            const Text(
+              '切换猫咪请回首页 🐾',
+              style: TextStyle(fontSize: 11, color: AppColors.textSub),
+            ),
+        ],
       ),
     );
   }
@@ -170,6 +211,7 @@ class _StatsPageState extends State<StatsPage> {
     final byDay = store.foodGramsByDay(_range, now);
     final activeDays = byDay.length;
     final dailyAvg = activeDays == 0 ? 0.0 : total / activeDays;
+    final catName = store.currentCat?.name;
 
     String fmt(double v) => v % 1 == 0 ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
 
@@ -177,13 +219,13 @@ class _StatsPageState extends State<StatsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Text('🍚', style: TextStyle(fontSize: 20)),
-              SizedBox(width: 8),
+              const Text('🍚', style: TextStyle(fontSize: 20)),
+              const SizedBox(width: 8),
               Text(
-                '喂食统计',
-                style: TextStyle(
+                catName == null ? '喂食统计' : '$catName的喂食统计',
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textMain,
@@ -234,6 +276,7 @@ class _StatsPageState extends State<StatsPage> {
     });
     final maxG = days.map((d) => d.grams).reduce((a, b) => a > b ? a : b);
     final goal = store.currentCat?.dailyFoodGoal ?? 60;
+    final catName = store.currentCat?.name;
 
     return CuteCard(
       child: Column(
@@ -243,9 +286,9 @@ class _StatsPageState extends State<StatsPage> {
             children: [
               const Text('📊', style: TextStyle(fontSize: 20)),
               const SizedBox(width: 8),
-              const Text(
-                '每日喂食量',
-                style: TextStyle(
+              Text(
+                catName == null ? '每日喂食量' : '$catName的每日喂食量',
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textMain,
