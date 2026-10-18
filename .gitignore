@@ -43,4 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-ecat-v1.3.0-android.apk
+
+# 发版产物（APK/EXE 等安装包，按版本号命名）
+/releases/
