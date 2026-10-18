@@ -1024,22 +1024,16 @@ class _CatDetailPageState extends State<CatDetailPage> {
     );
   }
 
-  /// fl_chart 1.x 折线图：x = 天数序号，y = 体重 kg
+  /// fl_chart 1.x 折线图：x = 记录序号，y = 体重 kg（固定 0~30 量程）
   Widget _buildLineChart(List<WeightLog> weights) {
     final spots = <FlSpot>[
       for (var i = 0; i < weights.length; i++)
         FlSpot(i.toDouble(), weights[i].weight),
     ];
 
-    // y 轴范围：体重上下各留 0.5kg 余量，至少 1kg 跨度
-    final ys = weights.map((w) => w.weight).toList();
-    double minY = ys.reduce((a, b) => a < b ? a : b) - 0.5;
-    double maxY = ys.reduce((a, b) => a > b ? a : b) + 0.5;
-    if (maxY - minY < 1) {
-      final mid = (maxY + minY) / 2;
-      minY = mid - 0.5;
-      maxY = mid + 0.5;
-    }
+    // y 轴固定 0~30kg 均匀分布，刻度清晰不随数据抖动
+    const double minY = 0;
+    const double maxY = 30;
 
     final target = context.watch<CatStore>().currentCat?.targetWeight;
 
@@ -1052,7 +1046,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval: ((maxY - minY) / 4).clamp(0.1, 5.0),
+          horizontalInterval: 5, // 与左轴刻度一致：0/5/10/15/20/25/30
           getDrawingHorizontalLine: (v) => const FlLine(
             color: AppColors.pinkLight,
             strokeWidth: 1,
@@ -1072,38 +1066,23 @@ class _CatDetailPageState extends State<CatDetailPage> {
               sideTitles: SideTitles(showTitles: false)),
           rightTitles: const AxisTitles(
               sideTitles: SideTitles(showTitles: false)),
-          // 左轴：kg
+          // 左轴：0~30kg 整数刻度
           leftTitles: const AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 36,
-              interval: 0.5,
+              interval: 5,
+              getTitlesWidget: _yTitle,
             ),
           ),
-          // 底轴：MM/dd 日期
+          // 底轴：MM/dd 日期（按记录数动态抽稀）
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 26,
               interval: 1,
-              getTitlesWidget: (value, meta) {
-                final i = value.toInt();
-                if (i < 0 || i >= weights.length) {
-                  return const SizedBox.shrink();
-                }
-                // 点多时隔一个显示，避免重叠
-                if (weights.length > 5 && i.isOdd) {
-                  return const SizedBox.shrink();
-                }
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    _fmtShort(weights[i].date),
-                    style: const TextStyle(
-                        color: AppColors.textSub, fontSize: 10),
-                  ),
-                );
-              },
+              getTitlesWidget: (value, meta) =>
+                  _xTitle(value, meta, weights),
             ),
           ),
         ),
@@ -1171,6 +1150,46 @@ class _CatDetailPageState extends State<CatDetailPage> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// 左轴刻度：整数 kg（0/5/10/15/20/25/30）
+  static Widget _yTitle(double value, TitleMeta meta) {
+    return SideTitleWidget(
+      meta: meta,
+      child: Text(
+        value.toInt().toString(),
+        style: const TextStyle(color: AppColors.textSub, fontSize: 11),
+      ),
+    );
+  }
+
+  /// 底轴日期标签抽稀算法：
+  /// 记录少时全部显示；记录多时按均匀步长抽取约 6~8 个标签，
+  /// 且「最新一条」始终显示（最新日期对用户最重要）。
+  static Widget _xTitle(double value, TitleMeta meta, List<WeightLog> weights) {
+    final i = value.toInt();
+    if (i < 0 || i >= weights.length) return const SizedBox.shrink();
+
+    final n = weights.length;
+    // 步长：记录数 ≤8 全显；之后逐步加大间隔，保证标签数不超过 ~8 个
+    final step = n <= 8 ? 1 : (n / 7).ceil();
+
+    // 最新一条（i == n-1）始终显示；其余按步长命中才显示
+    final isLast = i == n - 1;
+    if (!isLast && i % step != 0) return const SizedBox.shrink();
+
+    // 防止最后两个标签贴在一起：倒数第二个若与最后一条太近则跳过
+    if (!isLast && n > 8 && n - 1 - i < step ~/ 2) {
+      return const SizedBox.shrink();
+    }
+
+    return SideTitleWidget(
+      meta: meta,
+      child: Text(
+        _fmtShort(weights[i].date),
+        style: const TextStyle(color: AppColors.textSub, fontSize: 10),
       ),
     );
   }
