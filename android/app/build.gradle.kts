@@ -30,6 +30,12 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // R8 混淆会重命名 kotlin.coroutines.Continuation，破坏 jni 桥接的
+            // 方法签名查找（详见 proguard-rules.pro 头部说明）
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
