@@ -3,6 +3,9 @@
 // 数据全部来自 CatStore（provider），本文件不定义任何模型与存储逻辑
 library;
 
+import 'dart:io';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -10,6 +13,7 @@ import 'package:provider/provider.dart';
 
 import '../models/cat.dart';
 import '../store/cat_store.dart';
+import '../store/photo_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import 'backup_page.dart';
@@ -229,7 +233,7 @@ class _CatPageState extends State<CatPage> {
         children: [
           Row(
             children: [
-              CatAvatar(emoji: cat.avatar, size: 58),
+              CatAvatar(emoji: cat.avatar, size: 58, photoPath: cat.photoPath),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -381,6 +385,9 @@ class _CatFormSheetState extends State<_CatFormSheet> {
   late bool _neutered;
   late String _avatar;
   late String _furColor;
+  String? _photoPath; // 已保存的照片文件名（编辑模式回显）
+  String? _pendingPhotoSource; // 本次新选的照片源路径（保存时才复制）
+  String? _photoToRemove; // 待删除的旧照片文件名
   String? _error; // 名字校验提示
 
   bool get _isEdit => widget.cat != null;
@@ -405,6 +412,7 @@ class _CatFormSheetState extends State<_CatFormSheet> {
     _neutered = c?.neutered ?? false;
     _avatar = c?.avatar ?? '🐱';
     _furColor = c?.furColor ?? '橘色';
+    _photoPath = c?.photoPath;
   }
 
   @override
@@ -430,6 +438,24 @@ class _CatFormSheetState extends State<_CatFormSheet> {
     if (picked != null) setState(() => _birthday = picked);
   }
 
+  /// 选照片做头像：系统相册/文件选择器，先预览，保存时才复制
+  Future<void> _pickPhoto() async {
+    const typeGroup = XTypeGroup(
+      label: '图片',
+      extensions: ['jpg', 'jpeg', 'png', 'webp'],
+    );
+    final file = await openFile(acceptedTypeGroups: [typeGroup]);
+    if (file == null) return; // 用户取消
+    setState(() {
+      _pendingPhotoSource = file.path;
+      // 新照片覆盖旧照片
+      if (_photoPath != null) {
+        _photoToRemove = _photoPath;
+        _photoPath = null;
+      }
+    });
+  }
+
   /// 保存：校验名字非空 → addCat / updateCat
   Future<void> _save() async {
     final name = _nameCtrl.text.trim();
@@ -452,6 +478,16 @@ class _CatFormSheetState extends State<_CatFormSheet> {
 
     if (_isEdit) {
       final c = widget.cat!;
+      // 照片处理：新选的照片先复制进应用目录，再清理被替换的旧照片
+      String? photoPath = _photoPath;
+      if (_pendingPhotoSource != null) {
+        try {
+          photoPath = await PhotoStore.saveFrom(_pendingPhotoSource!, c.id);
+        } catch (_) {
+          // 复制失败则保持原照片不变
+          photoPath = _photoPath;
+        }
+      }
       // 编辑模式：保留原 id，回写可变字段
       c.name = name;
       c.breed = _breedCtrl.text.trim().isEmpty ? '田园猫' : _breedCtrl.text.trim();
@@ -460,14 +496,29 @@ class _CatFormSheetState extends State<_CatFormSheet> {
       c.neutered = _neutered;
       c.furColor = _furColor;
       c.avatar = _avatar;
+      c.photoPath = photoPath;
       c.targetWeight = target;
       c.dailyFoodGoal = effectiveFoodGoal ?? Cat.defaultDailyFoodGoal;
       c.allergies = allergies;
       c.notes = _notesCtrl.text.trim();
       await store.updateCat(c);
+      // 保存成功后清理被替换/移除的旧照片文件
+      if (_photoToRemove != null && _photoToRemove != photoPath) {
+        await PhotoStore.delete(_photoToRemove);
+      }
     } else {
+      final newId = DateTime.now().microsecondsSinceEpoch.toString();
+      // 新增模式：照片复制进应用目录
+      String? photoPath;
+      if (_pendingPhotoSource != null) {
+        try {
+          photoPath = await PhotoStore.saveFrom(_pendingPhotoSource!, newId);
+        } catch (_) {
+          photoPath = null; // 复制失败则回退 emoji 头像
+        }
+      }
       await store.addCat(Cat(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        id: newId,
         name: name,
         breed: _breedCtrl.text.trim().isEmpty ? '田园猫' : _breedCtrl.text.trim(),
         birthday: _birthday,
@@ -475,6 +526,7 @@ class _CatFormSheetState extends State<_CatFormSheet> {
         neutered: _neutered,
         furColor: _furColor,
         avatar: _avatar,
+        photoPath: photoPath,
         targetWeight: target,
         dailyFoodGoal: effectiveFoodGoal,
         allergies: allergies,
@@ -517,27 +569,92 @@ class _CatFormSheetState extends State<_CatFormSheet> {
             children: [
               for (final e in _avatarChoices)
                 GestureDetector(
-                  onTap: () => setState(() => _avatar = e),
+                  onTap: () => setState(() {
+                    _avatar = e;
+                    // 选 emoji 即回到 emoji 头像
+                    if (_photoPath != null || _pendingPhotoSource != null) {
+                      _photoToRemove = _photoPath;
+                      _photoPath = null;
+                      _pendingPhotoSource = null;
+                    }
+                  }),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: _avatar == e
+                      color: (_avatar == e && _photoPath == null && _pendingPhotoSource == null)
                           ? AppColors.pinkLight
                           : AppColors.cream,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: _avatar == e
+                        color: (_avatar == e && _photoPath == null && _pendingPhotoSource == null)
                             ? AppColors.pinkDeep
                             : AppColors.pinkLight,
-                        width: _avatar == e ? 2 : 1,
+                        width: (_avatar == e && _photoPath == null && _pendingPhotoSource == null)
+                            ? 2
+                            : 1,
                       ),
                     ),
                     alignment: Alignment.center,
                     child: Text(e, style: const TextStyle(fontSize: 22)),
                   ),
                 ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // ---- 照片头像 ----
+          Row(
+            children: [
+              // 照片预览（有照片或已选新照片时显示）
+              if (_pendingPhotoSource != null)
+                ClipOval(
+                  child: Image.file(
+                    File(_pendingPhotoSource!),
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) =>
+                        const Text('📷', style: TextStyle(fontSize: 22)),
+                  ),
+                )
+              else if (_photoPath != null)
+                CatAvatar(emoji: _avatar, size: 44, photoPath: _photoPath),
+              if (_pendingPhotoSource != null || _photoPath != null) ...[
+                const SizedBox(width: 10),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _photoToRemove = _photoPath;
+                    _photoPath = null;
+                    _pendingPhotoSource = null;
+                  }),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    textStyle: const TextStyle(fontSize: 13),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                  child: const Text('移除照片'),
+                ),
+              ],
+              const Spacer(),
+              OutlinedButton.icon(
+                onPressed: _pickPhoto,
+                icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                label: Text(
+                  _pendingPhotoSource != null || _photoPath != null
+                      ? '换一张'
+                      : '用照片做头像',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.pinkDeep,
+                  side: const BorderSide(color: AppColors.pink),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -944,7 +1061,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
           Center(
             child: Column(
               children: [
-                CatAvatar(emoji: cat.avatar, size: 84),
+                CatAvatar(emoji: cat.avatar, size: 84, photoPath: cat.photoPath),
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,

@@ -92,6 +92,8 @@ class CatStore extends ChangeNotifier {
   }
 
   Future<void> removeCat(String id) async {
+    // 级联清理照片文件（在移除档案前取出文件名）
+    final photo = _cats.where((c) => c.id == id).firstOrNull?.photoPath;
     _cats.removeWhere((c) => c.id == id);
     _feeds.removeWhere((f) => f.catId == id);
     _weights.removeWhere((w) => w.catId == id);
@@ -99,7 +101,24 @@ class CatStore extends ChangeNotifier {
     if (_currentCatId == id) _currentCatId = _cats.firstOrNull?.id;
     await _persist();
     notifyListeners();
+    if (photo != null) {
+      // 延迟导入避免 store 层直接依赖 photo_store 造成循环；直接调用即可（无循环）
+      await _deletePhoto(photo);
+    }
   }
+
+  /// 删除照片文件（失败静默）
+  Future<void> _deletePhoto(String fileName) async {
+    try {
+      final photoStore = _photoStoreInstance;
+      if (photoStore != null) await photoStore(fileName);
+    } catch (_) {}
+  }
+
+  /// 照片删除回调（main.dart 注入，避免循环依赖）
+  static Future<void> Function(String)? _photoStoreInstance;
+  static set photoDeleter(Future<void> Function(String)? f) =>
+      _photoStoreInstance = f;
 
   Future<void> selectCat(String id) async {
     if (_currentCatId == id) return;

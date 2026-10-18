@@ -7,6 +7,8 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'theme/app_theme.dart';
 import 'store/cat_store.dart';
+import 'store/photo_store.dart';
+import 'widgets/common.dart' show photoResolver;
 import 'pages/home_page.dart';
 import 'pages/record_page.dart';
 import 'pages/cat_page.dart';
@@ -15,6 +17,8 @@ import 'pages/knowledge_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('zh_CN', null);
+  photoResolver = PhotoStore.resolve; // 照片头像路径解析
+  CatStore.photoDeleter = PhotoStore.delete; // 删除猫咪时级联清理照片
   final store = CatStore();
   await store.load();
   runApp(EcatApp(store: store));

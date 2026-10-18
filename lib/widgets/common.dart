@@ -3,8 +3,16 @@ library;
 
 import 'dart:math' as math;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+
+/// 照片路径解析器：由 main.dart 注入（避免 widgets 层直接依赖 store 层）
+typedef PhotoPathResolver = Future<String?> Function(String? fileName);
+
+/// 全局照片解析器（main.dart 启动时设置）
+PhotoPathResolver? photoResolver;
 
 /// 大圆角软阴影卡片
 class CuteCard extends StatelessWidget {
@@ -118,13 +126,20 @@ class PawButton extends StatelessWidget {
   }
 }
 
-/// 猫咪 emoji 头像（带渐变底）
+/// 猫咪头像：优先照片（photoPath 非空且文件存在），否则 emoji（带渐变底）
 class CatAvatar extends StatelessWidget {
   final String emoji;
   final double size;
   final VoidCallback? onTap;
+  final String? photoPath; // 照片文件名（应用数据目录内）
 
-  const CatAvatar({super.key, required this.emoji, this.size = 56, this.onTap});
+  const CatAvatar({
+    super.key,
+    required this.emoji,
+    this.size = 56,
+    this.onTap,
+    this.photoPath,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -147,10 +162,47 @@ class CatAvatar extends StatelessWidget {
         ],
       ),
       alignment: Alignment.center,
-      child: Text(emoji, style: TextStyle(fontSize: size * 0.52)),
+      child: photoPath == null
+          ? Text(emoji, style: TextStyle(fontSize: size * 0.52))
+          : _PhotoImage(fileName: photoPath!, size: size),
     );
     if (onTap == null) return av;
     return GestureDetector(onTap: onTap, child: av);
+  }
+}
+
+/// 头像照片：圆形裁剪 + 加载失败回退 emoji
+class _PhotoImage extends StatelessWidget {
+  final String fileName;
+  final double size;
+
+  const _PhotoImage({required this.fileName, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final resolver = photoResolver;
+    if (resolver == null) {
+      return Text('🐱', style: TextStyle(fontSize: size * 0.52));
+    }
+    return FutureBuilder<String?>(
+      future: resolver(fileName),
+      builder: (context, snap) {
+        final path = snap.data;
+        if (path == null) {
+          return Text('🐱', style: TextStyle(fontSize: size * 0.52));
+        }
+        return ClipOval(
+          child: Image.file(
+            File(path),
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) =>
+                Text('🐱', style: TextStyle(fontSize: size * 0.52)),
+          ),
+        );
+      },
+    );
   }
 }
 

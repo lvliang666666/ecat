@@ -118,7 +118,7 @@ class _CatProfileCard extends StatelessWidget {
     return CuteCard(
       child: Row(
         children: [
-          CatAvatar(emoji: cat.avatar, size: 64),
+          CatAvatar(emoji: cat.avatar, size: 64, photoPath: cat.photoPath),
           const SizedBox(width: 16),
           Expanded(
             child: Column(

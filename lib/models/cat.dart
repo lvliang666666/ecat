@@ -15,6 +15,7 @@ class Cat {
   bool neutered; // 是否绝育
   String furColor; // 毛色
   String avatar; // emoji 头像
+  String? photoPath; // 照片头像（应用数据目录内的文件名，null = 用 emoji）
   double? targetWeight; // 目标体重 kg
   double dailyFoodGoal; // 每日喂食目标 g（饮水不计入）
   List<String> allergies; // 过敏/禁忌
@@ -29,6 +30,7 @@ class Cat {
     this.neutered = false,
     this.furColor = '橘色',
     this.avatar = '🐱',
+    this.photoPath,
     this.targetWeight,
     double? dailyFoodGoal,
     List<String>? allergies,
@@ -66,6 +68,7 @@ class Cat {
         'neutered': neutered,
         'furColor': furColor,
         'avatar': avatar,
+        'photoPath': photoPath,
         'targetWeight': targetWeight,
         'dailyFoodGoal': dailyFoodGoal,
         'allergies': allergies,
@@ -81,6 +84,7 @@ class Cat {
         neutered: (j['neutered'] ?? false) as bool,
         furColor: (j['furColor'] ?? '') as String,
         avatar: (j['avatar'] ?? '🐱') as String,
+        photoPath: (j['photoPath'] as String?)?.isEmpty ?? true ? null : j['photoPath'] as String?,
         targetWeight: (j['targetWeight'] as num?)?.toDouble(),
         dailyFoodGoal: (j['dailyFoodGoal'] as num?)?.toDouble(),
         allergies: ((j['allergies'] as List?) ?? [])
