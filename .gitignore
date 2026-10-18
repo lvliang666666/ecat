@@ -46,3 +46,11 @@ app.*.map.json
 
 # 发版产物（APK/EXE 等安装包，按版本号命名）
 /releases/
+
+# 个人可复用资产（不入公开仓库，见 版本管理规范/README.md「个人资产规则」）
+# - 版本管理规范/：跨项目复用的规范正本副本，含个人工作流与项目清单
+# - LESSONS.md：个人踩坑经验沉淀，含本机环境信息
+# - PROJECT_STATUS.md：个人项目进度备忘，含开发方式与待办规划
+/版本管理规范/
+/LESSONS.md
+/PROJECT_STATUS.md
