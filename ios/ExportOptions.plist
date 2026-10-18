@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 开发签名导出：免费 Apple ID 个人团队，装自己设备测试（7 天有效） -->
+	<key>method</key>
+	<string>development</string>
+	<key>teamID</key>
+	<string></string>
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<key>signingCertificate</key>
+	<string>Apple Development</string>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>com.lvproject.ecat</key>
+		<string>match Development com.lvproject.ecat</string>
+	</dict>
+	<key>stripSwiftSymbols</key>
+	<true/>
+	<key>compileBitcode</key>
+	<false/>
+</dict>
+</plist>

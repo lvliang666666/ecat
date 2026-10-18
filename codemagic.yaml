@@ -1,0 +1,46 @@
+# Codemagic 构建配置 —— eCAT · 喵喵管家
+# 文档：https://docs.codemagic.io/yaml/yaml-getting-started/
+#
+# 用途：在云 Mac 上构建 iOS 安装包（免费 Apple ID 个人团队签名，
+#       装自己 iPhone 测试用，7 天有效期需重签）。
+# 触发：推送到 GitHub 后在 Codemagic 控制台手动/自动触发。
+
+workflows:
+  ios-release:
+    name: eCAT iOS Release
+    # 免费层默认 Mac mini M2（500 分钟/月）
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      # Xcode 版本（Codemagic 支持的稳定版）
+      xcode: latest
+      cocoapods: default
+      vars:
+        # 免费个人团队签名：由 Codemagic 自动管理证书与描述文件
+        # 首次构建需在 Codemagic 网页端连接 Apple ID（个人团队）
+        BUNDLE_ID: com.lvproject.ecat
+      # 签名配置在网页端完成（App Store Connect API / 个人团队 Apple ID）
+    scripts:
+      - name: 检查环境
+        script: |
+          flutter --version
+          xcodebuild -version
+      - name: 获取依赖
+        script: |
+          flutter pub get
+      - name: 静态检查与测试
+        script: |
+          flutter analyze
+          flutter test
+      - name: 构建 IPA（开发签名，真机安装）
+        script: |
+          flutter build ipa --release \
+            --export-options-plist=$CM_BUILD_DIR/ios/ExportOptions.plist \
+            --build-name=$PROJECT_VERSION \
+            --build-number=$PROJECT_BUILD_NUMBER
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - # 构建完成后通知邮箱（在 Codemagic 网页端配置团队邮箱即可，此处留空用账号邮箱）
