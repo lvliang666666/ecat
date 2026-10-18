@@ -802,13 +802,19 @@ class _CatDetailPageState extends State<CatDetailPage> {
             SectionTitle(
               title: '体重曲线',
               emoji: '⚖️',
-              trailing: weights.length >= 2
-                  ? Text(
-                      '最近 ${weights.last.weight.toStringAsFixed(1)} kg',
-                      style: const TextStyle(
-                          color: AppColors.textSub, fontSize: 12),
-                    )
-                  : null,
+              trailing: GestureDetector(
+                onTap: weights.isEmpty
+                    ? null
+                    : () => _openWeightHistory(context, store),
+                child: const Text(
+                  '历史体重 ›',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.pinkDeep,
+                  ),
+                ),
+              ),
             ),
             _weightChartCard(weights),
             const SizedBox(height: 20),
@@ -984,14 +990,16 @@ class _CatDetailPageState extends State<CatDetailPage> {
     );
   }
 
-  /// 体重曲线卡片（fl_chart LineChart）
+  /// 体重曲线卡片（fl_chart LineChart）：固定展示最近 7 次记录
   Widget _weightChartCard(List<WeightLog> weights) {
+    // 曲线只取最近 7 次（weights 已按日期升序），横轴即这 7 次的日期
+    final recent = weights.length <= 7 ? weights : weights.sublist(weights.length - 7);
     return CuteCard(
       child: Column(
         children: [
           SizedBox(
             height: 200,
-            child: weights.length < 2
+            child: recent.length < 2
                 // 数据不足：可爱提示
                 ? const Center(
                     child: Column(
@@ -1009,7 +1017,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
                   )
                 : Padding(
                     padding: const EdgeInsets.only(top: 8, right: 8),
-                    child: _buildLineChart(weights),
+                    child: _buildLineChart(recent),
                   ),
           ),
           const SizedBox(height: 12),
@@ -1024,22 +1032,16 @@ class _CatDetailPageState extends State<CatDetailPage> {
     );
   }
 
-  /// fl_chart 1.x 折线图：x = 天数序号，y = 体重 kg
+  /// fl_chart 1.x 折线图：x = 记录序号，y = 体重 kg（固定 0~30 量程）
   Widget _buildLineChart(List<WeightLog> weights) {
     final spots = <FlSpot>[
       for (var i = 0; i < weights.length; i++)
         FlSpot(i.toDouble(), weights[i].weight),
     ];
 
-    // y 轴范围：体重上下各留 0.5kg 余量，至少 1kg 跨度
-    final ys = weights.map((w) => w.weight).toList();
-    double minY = ys.reduce((a, b) => a < b ? a : b) - 0.5;
-    double maxY = ys.reduce((a, b) => a > b ? a : b) + 0.5;
-    if (maxY - minY < 1) {
-      final mid = (maxY + minY) / 2;
-      minY = mid - 0.5;
-      maxY = mid + 0.5;
-    }
+    // y 轴固定 0~30kg 均匀分布，刻度清晰不随数据抖动
+    const double minY = 0;
+    const double maxY = 30;
 
     final target = context.watch<CatStore>().currentCat?.targetWeight;
 
@@ -1052,7 +1054,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval: ((maxY - minY) / 4).clamp(0.1, 5.0),
+          horizontalInterval: 5, // 与左轴刻度一致：0/5/10/15/20/25/30
           getDrawingHorizontalLine: (v) => const FlLine(
             color: AppColors.pinkLight,
             strokeWidth: 1,
@@ -1072,38 +1074,23 @@ class _CatDetailPageState extends State<CatDetailPage> {
               sideTitles: SideTitles(showTitles: false)),
           rightTitles: const AxisTitles(
               sideTitles: SideTitles(showTitles: false)),
-          // 左轴：kg
+          // 左轴：0~30kg 整数刻度
           leftTitles: const AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 36,
-              interval: 0.5,
+              interval: 5,
+              getTitlesWidget: _yTitle,
             ),
           ),
-          // 底轴：MM/dd 日期
+          // 底轴：MM/dd 日期（按记录数动态抽稀）
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 26,
               interval: 1,
-              getTitlesWidget: (value, meta) {
-                final i = value.toInt();
-                if (i < 0 || i >= weights.length) {
-                  return const SizedBox.shrink();
-                }
-                // 点多时隔一个显示，避免重叠
-                if (weights.length > 5 && i.isOdd) {
-                  return const SizedBox.shrink();
-                }
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(
-                    _fmtShort(weights[i].date),
-                    style: const TextStyle(
-                        color: AppColors.textSub, fontSize: 10),
-                  ),
-                );
-              },
+              getTitlesWidget: (value, meta) =>
+                  _xTitle(value, meta, weights),
             ),
           ),
         ),
@@ -1175,12 +1162,45 @@ class _CatDetailPageState extends State<CatDetailPage> {
     );
   }
 
+  /// 左轴刻度：整数 kg（0/5/10/15/20/25/30）
+  static Widget _yTitle(double value, TitleMeta meta) {
+    return SideTitleWidget(
+      meta: meta,
+      child: Text(
+        value.toInt().toString(),
+        style: const TextStyle(color: AppColors.textSub, fontSize: 11),
+      ),
+    );
+  }
+
+  /// 底轴日期标签：曲线固定最近 7 次记录，7 个标签全部显示
+  static Widget _xTitle(double value, TitleMeta meta, List<WeightLog> weights) {
+    final i = value.toInt();
+    if (i < 0 || i >= weights.length) return const SizedBox.shrink();
+    return SideTitleWidget(
+      meta: meta,
+      child: Text(
+        _fmtShort(weights[i].date),
+        style: const TextStyle(color: AppColors.textSub, fontSize: 10),
+      ),
+    );
+  }
+
   /// 记录体重弹窗
   Future<void> _openWeightSheet(BuildContext context) {
     return showCuteSheet(
       context: context,
       isScrollControlled: true,
       builder: (_) => const _WeightSheet(),
+    );
+  }
+
+  /// 历史体重弹窗：全部记录倒序列表，支持长按删除
+  void _openWeightHistory(BuildContext context, CatStore store) {
+    showCuteSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _WeightHistorySheet(store: store),
     );
   }
 
@@ -1380,5 +1400,171 @@ class _WeightSheetState extends State<_WeightSheet> {
         ],
       ),
     );
+  }
+}
+
+// ==================== 历史体重弹窗 ====================
+
+/// 全部体重记录倒序列表：日期 + 体重 + 与上次对比，长按删除
+class _WeightHistorySheet extends StatelessWidget {
+  final CatStore store;
+
+  const _WeightHistorySheet({required this.store});
+
+  @override
+  Widget build(BuildContext context) {
+    // 实时监听：删除后列表立即刷新
+    final weights = context.watch<CatStore>().weights.toList()
+      ..sort((a, b) => b.date.compareTo(a.date)); // 倒序：最新在上
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Text(
+              '历史体重 ⚖️（共 ${weights.length} 次）',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textMain,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Center(
+            child: Text(
+              '长按某条记录可删除',
+              style: TextStyle(fontSize: 12, color: AppColors.textSub),
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (weights.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: EmptyState(
+                emoji: '⚖️',
+                title: '还没有体重记录',
+                subtitle: '去曲线下方「记录体重」记第一条吧',
+              ),
+            )
+          else
+            Flexible(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 420),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < weights.length; i++)
+                        _historyTile(context, weights[i], i == 0, weights),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 单条历史记录：日期 + 体重 + 与上一条（更早那条）的对比
+  Widget _historyTile(
+      BuildContext context, WeightLog w, bool isLatest, List<WeightLog> all) {
+    // all 是倒序的：当前条的下一项（idx+1）就是更早的那次记录
+    WeightLog? earlier;
+    final idx = all.indexOf(w);
+    if (idx >= 0 && idx + 1 < all.length) earlier = all[idx + 1];
+
+    String? diffText;
+    Color? diffColor;
+    if (earlier != null) {
+      final diff = w.weight - earlier.weight;
+      if (diff.abs() < 0.01) {
+        diffText = '持平';
+        diffColor = AppColors.textSub;
+      } else if (diff > 0) {
+        diffText = '↑${diff.toStringAsFixed(2)}';
+        diffColor = AppColors.butterDeep;
+      } else {
+        diffText = '↓${(-diff).toStringAsFixed(2)}';
+        diffColor = AppColors.mintDeep;
+      }
+    }
+
+    return GestureDetector(
+      onLongPress: () => _confirmDelete(context, w),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isLatest ? AppColors.pinkLight.withValues(alpha: 0.6) : AppColors.cream,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            if (isLatest) ...[
+              const Text('🆕', style: TextStyle(fontSize: 14)),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              _fmtDot(w.date),
+              style: const TextStyle(color: AppColors.textSub, fontSize: 13),
+            ),
+            const Spacer(),
+            Text(
+              '${w.weight.toStringAsFixed(2)} kg',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textMain,
+              ),
+            ),
+            if (diffText != null) ...[
+              const SizedBox(width: 10),
+              Text(
+                diffText,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: diffColor,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 删除二次确认
+  Future<void> _confirmDelete(BuildContext context, WeightLog w) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除这条体重记录？'),
+        content: Text(
+          '${_fmtDot(w.date)} 的 ${w.weight.toStringAsFixed(2)} kg 将被删除',
+          style: const TextStyle(color: AppColors.textSub, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child:
+                const Text('再想想', style: TextStyle(color: AppColors.textSub)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child:
+                const Text('删除', style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await store.removeWeight(w.id);
+      if (context.mounted) showCuteToast(context, '记录已删除 🗑️');
+    }
   }
 }
