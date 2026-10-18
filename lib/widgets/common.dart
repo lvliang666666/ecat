@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../models/cat.dart';
 import '../theme/app_theme.dart';
 
 /// 照片路径解析器：由 main.dart 注入（避免 widgets 层直接依赖 store 层）
@@ -20,6 +21,7 @@ class CuteCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry? margin;
   final Color color;
+  final Border? border;
   final VoidCallback? onTap;
 
   const CuteCard({
@@ -28,6 +30,7 @@ class CuteCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(16),
     this.margin,
     this.color = AppColors.card,
+    this.border,
     this.onTap,
   });
 
@@ -39,6 +42,7 @@ class CuteCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(24),
+        border: border,
         boxShadow: [
           BoxShadow(
             color: AppColors.pink.withValues(alpha: 0.10),
@@ -202,6 +206,79 @@ class _PhotoImage extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// 猫咪查看 tags：横向滑动列表，点击切换查看对象（不改变记录归属）
+/// 带🐾小标记的是当前记录对象，提示用户「记一笔」会记到谁名下
+class ViewCatTags extends StatelessWidget {
+  final List<Cat> cats;
+  final String selectedId;
+  final String? recordingTargetId;
+  final ValueChanged<String> onSelect;
+
+  const ViewCatTags({
+    super.key,
+    required this.cats,
+    required this.selectedId,
+    required this.recordingTargetId,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: cats.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, i) {
+          final cat = cats[i];
+          final sel = cat.id == selectedId;
+          final isTarget = cat.id == recordingTargetId;
+          return GestureDetector(
+            onTap: () => onSelect(cat.id),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: sel ? AppColors.pink : Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: sel ? AppColors.pinkDeep : AppColors.pinkLight,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Text(cat.avatar, style: const TextStyle(fontSize: 18)),
+                  const SizedBox(width: 6),
+                  Text(
+                    cat.name,
+                    style: TextStyle(
+                      color: sel ? Colors.white : AppColors.textMain,
+                      fontWeight: sel ? FontWeight.bold : FontWeight.w500,
+                    ),
+                  ),
+                  if (isTarget) ...[
+                    const SizedBox(width: 5),
+                    Text(
+                      '🐾',
+                      style: TextStyle(
+                        fontSize: 11,
+                        // 选中态白底上用半透明白，未选中用主题色
+                        color: sel ? Colors.white : AppColors.mintDeep,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

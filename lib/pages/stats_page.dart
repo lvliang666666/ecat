@@ -1,5 +1,5 @@
 // eCAT · 统计面板页：周/月喂食统计 + 体重周报
-// 数据全部来自 CatStore 统计查询（当前猫咪隔离视图）；由猫咪页入口进入。
+// 查看对象用横向滑动 tags 切换（页面本地状态，不影响记录对象）；由猫咪页入口进入。
 library;
 
 import 'package:fl_chart/fl_chart.dart';
@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../models/cat.dart';
 import '../store/cat_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
@@ -23,38 +24,46 @@ class _StatsPageState extends State<StatsPage> {
   /// 统计范围：7 天 / 30 天
   int _range = 7;
 
+  /// 当前查看的猫咪 id（查看对象，与记录对象无关）
+  String? _viewCatId;
+
   @override
   Widget build(BuildContext context) {
     final store = context.watch<CatStore>();
     final now = DateTime.now();
+
+    // 无猫咪档案：可爱空态
+    if (store.isEmpty) {
+      return Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              _header(context),
+              const Expanded(
+                child: EmptyState(
+                  emoji: '📊',
+                  title: '还没有猫咪档案',
+                  subtitle: '先去「猫咪」页添加小主子，再来统计吧',
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 查看对象：本地状态优先，失效（被删）时回退记录对象
+    final cats = store.cats;
+    var viewCat = cats.where((c) => c.id == _viewCatId).firstOrNull;
+    viewCat ??= store.currentCat ?? cats.first;
+    if (viewCat.id != _viewCatId) _viewCatId = viewCat.id;
 
     return Scaffold(
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
-            // 顶部返回 + 标题
-            Row(
-              children: [
-                _roundIconBtn(
-                  icon: Icons.arrow_back_ios_new_rounded,
-                  onTap: () => Navigator.of(context).pop(),
-                ),
-                const Expanded(
-                  child: Center(
-                    child: Text(
-                      '统计面板 📊',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textMain,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 40),
-              ],
-            ),
+            _header(context),
             const SizedBox(height: 16),
 
             // 范围切换
@@ -69,79 +78,67 @@ class _StatsPageState extends State<StatsPage> {
             ),
             const SizedBox(height: 20),
 
-            // ---- 统计对象：当前猫咪标识条 ----
-            _catBanner(store),
-            const SizedBox(height: 20),
+            // ---- 查看对象 tags（横向滑动，点击即看） ----
+            if (cats.length > 1)
+              ViewCatTags(
+                cats: cats,
+                selectedId: viewCat.id,
+                recordingTargetId: store.currentCat?.id,
+                onSelect: (id) => setState(() => _viewCatId = id),
+              ),
+            if (cats.length > 1) const SizedBox(height: 20),
 
             // ---- 体重周报 ----
-            _weightReportCard(store),
+            _weightReportCard(store, viewCat),
             const SizedBox(height: 20),
 
             // ---- 喂食统计 ----
-            _feedStatsCard(store, now),
+            _feedStatsCard(store, viewCat, now),
             const SizedBox(height: 20),
 
             // ---- 每日喂食柱状图 ----
-            _feedBarChartCard(store, now),
+            _feedBarChartCard(store, viewCat, now),
           ],
         ),
       ),
     );
   }
 
-  /// 统计对象标识条：明确当前统计的是哪只猫（多猫切换在首页/猫咪页）
-  Widget _catBanner(CatStore store) {
-    final cat = store.currentCat;
-    final multi = store.cats.length > 1;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.pinkLight.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          CatAvatar(emoji: cat?.avatar ?? '🐱', size: 36, photoPath: cat?.photoPath),
-          const SizedBox(width: 10),
-          Expanded(
+  /// 顶部返回 + 标题
+  Widget _header(BuildContext context) {
+    return Row(
+      children: [
+        _roundIconBtn(
+          icon: Icons.arrow_back_ios_new_rounded,
+          onTap: () => Navigator.of(context).pop(),
+        ),
+        const Expanded(
+          child: Center(
             child: Text(
-              cat == null
-                  ? '还没有猫咪档案，以下为空数据'
-                  : '以下是「${cat.name}」的统计数据',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+              '统计面板 📊',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
                 color: AppColors.textMain,
               ),
             ),
           ),
-          if (multi)
-            const Text(
-              '切换猫咪请回首页 🐾',
-              style: TextStyle(fontSize: 11, color: AppColors.textSub),
-            ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 40),
+      ],
     );
   }
 
   /// 体重周报卡：「这周胖了 0.2kg 🎉」
-  Widget _weightReportCard(CatStore store) {
-    final report = store.weeklyWeightReport();
-    final cat = store.currentCat;
+  Widget _weightReportCard(CatStore store, Cat cat) {
+    final report = store.weeklyWeightReportOf(cat.id);
 
     String title;
     String subtitle;
     String emoji;
     Color accent;
 
-    if (cat == null) {
-      title = '还没有猫咪档案';
-      subtitle = '添加猫咪并记录体重后，这里会生成周报';
-      emoji = '🐱';
-      accent = AppColors.textSub;
-    } else if (report == null) {
+    if (report == null) {
       title = '本周还没有体重记录';
       subtitle = '记一次体重，周报马上安排 ⚖️';
       emoji = '📈';
@@ -206,12 +203,11 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   /// 喂食统计卡：总克数 + 日均 + 记录次数
-  Widget _feedStatsCard(CatStore store, DateTime now) {
-    final total = store.foodGramsInDays(_range, now);
-    final byDay = store.foodGramsByDay(_range, now);
+  Widget _feedStatsCard(CatStore store, Cat cat, DateTime now) {
+    final total = store.foodGramsInDaysOf(cat.id, _range, now);
+    final byDay = store.foodGramsByDayOf(cat.id, _range, now);
     final activeDays = byDay.length;
     final dailyAvg = activeDays == 0 ? 0.0 : total / activeDays;
-    final catName = store.currentCat?.name;
 
     String fmt(double v) => v % 1 == 0 ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
 
@@ -224,7 +220,7 @@ class _StatsPageState extends State<StatsPage> {
               const Text('🍚', style: TextStyle(fontSize: 20)),
               const SizedBox(width: 8),
               Text(
-                catName == null ? '喂食统计' : '$catName的喂食统计',
+                '${cat.name}的喂食统计',
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -265,8 +261,8 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   /// 每日喂食柱状图（最近 N 天，饮水除外）
-  Widget _feedBarChartCard(CatStore store, DateTime now) {
-    final byDay = store.foodGramsByDay(_range, now);
+  Widget _feedBarChartCard(CatStore store, Cat cat, DateTime now) {
+    final byDay = store.foodGramsByDayOf(cat.id, _range, now);
     final days = List.generate(_range, (i) {
       final d = DateTime(now.year, now.month, now.day)
           .subtract(Duration(days: _range - 1 - i));
@@ -275,8 +271,7 @@ class _StatsPageState extends State<StatsPage> {
       return (date: d, grams: byDay[key] ?? 0.0);
     });
     final maxG = days.map((d) => d.grams).reduce((a, b) => a > b ? a : b);
-    final goal = store.currentCat?.dailyFoodGoal ?? 60;
-    final catName = store.currentCat?.name;
+    final goal = cat.dailyFoodGoal;
 
     return CuteCard(
       child: Column(
@@ -287,7 +282,7 @@ class _StatsPageState extends State<StatsPage> {
               const Text('📊', style: TextStyle(fontSize: 20)),
               const SizedBox(width: 8),
               Text(
-                catName == null ? '每日喂食量' : '$catName的每日喂食量',
+                '${cat.name}的每日喂食量',
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,

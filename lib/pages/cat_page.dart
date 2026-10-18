@@ -206,12 +206,16 @@ class _CatPageState extends State<CatPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              '共 ${cats.length} 只小主子',
+              '共 ${cats.length} 只小主子 · 绿框是当前记录对象，长按卡片可切换',
               style: const TextStyle(color: AppColors.textSub, fontSize: 13),
             ),
             const SizedBox(height: 18),
             // 猫咪卡片列表
-            for (final cat in cats) _catCard(context, store, cat),
+            for (final cat in cats)
+              GestureDetector(
+                onLongPress: () => _switchRecordingTarget(context, cat),
+                child: _catCard(context, store, cat),
+              ),
             const SizedBox(height: 6),
             PawButton(
               label: '添加猫咪',
@@ -226,8 +230,13 @@ class _CatPageState extends State<CatPage> {
 
   /// 单只猫咪卡片
   Widget _catCard(BuildContext context, CatStore store, Cat cat) {
+    final isRecordingTarget = cat.id == store.currentCat?.id;
     return CuteCard(
       margin: const EdgeInsets.only(bottom: 14),
+      // 记录对象用薄荷绿描边标识（不用角标，避免遮挡头像和名字）
+      border: isRecordingTarget
+          ? Border.all(color: AppColors.mintDeep, width: 2)
+          : null,
       onTap: () => _openDetail(context, cat),
       child: Stack(
         children: [
@@ -317,25 +326,52 @@ class _CatPageState extends State<CatPage> {
   }
 
   /// 卡片体重文案：当前猫咪显示最新体重，其余回退到目标体重
-  /// （CatStore.weights 只暴露当前猫咪的数据视图）
   String _weightLine(CatStore store, Cat cat) {
-    if (cat.id == store.currentCat?.id) {
-      final w = store.latestWeight;
-      if (w != null) return '⚖️ 最新 ${w.weight.toStringAsFixed(1)} kg';
-    }
+    final w = store.latestWeightOf(cat.id);
+    if (w != null) return '⚖️ 最新 ${w.weight.toStringAsFixed(1)} kg';
     final t = cat.targetWeight;
     if (t != null) return '🎯 目标 ${t.toStringAsFixed(1)} kg';
     return '⚖️ 体重待记录';
   }
 
-  /// 切换当前猫咪并进入详情页（详情页数据视图随 selectCat 隔离）
+  /// 进入详情页（详情页按 catId 取数，不改变记录对象）
   Future<void> _openDetail(BuildContext context, Cat cat) async {
-    final store = context.read<CatStore>();
-    await store.selectCat(cat.id);
     if (!context.mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => CatDetailPage(catId: cat.id)),
     );
+  }
+
+  /// 切换记录对象：带确认弹窗（记录归属变更需要用户明确确认）
+  Future<void> _switchRecordingTarget(BuildContext context, Cat cat) async {
+    final store = context.read<CatStore>();
+    if (cat.id == store.currentCat?.id) return; // 已是记录对象
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('把记录对象切换为「${cat.name}」？'),
+        content: const Text(
+          '之后「记一笔」喂食、体重、健康记录都会记到 TA 名下。\n\n浏览数据不受影响，随时可以再切换。',
+          style: TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child:
+                const Text('再想想', style: TextStyle(color: AppColors.textSub)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('切换到 ${cat.name}',
+                style: const TextStyle(
+                    color: AppColors.pinkDeep, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await store.selectCat(cat.id);
+    if (context.mounted) showCuteToast(context, '记录对象已切换为 ${cat.avatar} ${cat.name}');
   }
 
   /// 打开添加 / 编辑表单（cat 为 null 表示新增）
@@ -937,14 +973,14 @@ class _CatDetailPageState extends State<CatDetailPage> {
   @override
   Widget build(BuildContext context) {
     final store = context.watch<CatStore>();
-    // 详情页数据视图跟随当前猫咪；找不到（刚被删除）时退回列表
+    // 详情页按 catId 取数（查看不改变记录对象）；找不到（刚被删除）时退回列表
     final cat =
         store.cats.where((c) => c.id == widget.catId).firstOrNull;
     if (cat == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final weights = store.weights; // 当前猫咪体重（日期升序）
-    final healths = store.healths.toList()
+    final weights = store.weightsOf(cat.id); // 该猫体重（日期升序）
+    final healths = store.healthsOf(cat.id).toList()
       ..sort((a, b) => b.date.compareTo(a.date)); // 健康记录按日期倒序
 
     return Scaffold(
@@ -998,7 +1034,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
                 ),
               ),
             ),
-            _weightChartCard(weights),
+            _weightChartCard(cat, weights),
             const SizedBox(height: 20),
 
             // ---- 健康时间线 ----
@@ -1173,7 +1209,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
   }
 
   /// 体重曲线卡片（fl_chart LineChart）：固定展示最近 7 次记录
-  Widget _weightChartCard(List<WeightLog> weights) {
+  Widget _weightChartCard(Cat cat, List<WeightLog> weights) {
     // 曲线只取最近 7 次（weights 已按日期升序），横轴即这 7 次的日期
     final recent = weights.length <= 7 ? weights : weights.sublist(weights.length - 7);
     return CuteCard(
@@ -1207,7 +1243,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
             label: '记录体重',
             icon: Icons.monitor_weight_outlined,
             expanded: false,
-            onTap: () => _openWeightSheet(context),
+            onTap: () => _openWeightSheet(context, cat),
           ),
         ],
       ),
@@ -1225,7 +1261,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
     const double minY = 0;
     const double maxY = 30;
 
-    final target = context.watch<CatStore>().currentCat?.targetWeight;
+    final target = context.read<CatStore>().currentCat?.targetWeight;
 
     return LineChart(
       LineChartData(
@@ -1368,12 +1404,12 @@ class _CatDetailPageState extends State<CatDetailPage> {
     );
   }
 
-  /// 记录体重弹窗
-  Future<void> _openWeightSheet(BuildContext context) {
+  /// 记录体重弹窗（记录到当前查看的这只猫）
+  Future<void> _openWeightSheet(BuildContext context, Cat cat) {
     return showCuteSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => const _WeightSheet(),
+      builder: (_) => _WeightSheet(catId: cat.id, catName: cat.name),
     );
   }
 
@@ -1502,9 +1538,12 @@ class _CatDetailPageState extends State<CatDetailPage> {
 
 // ==================== 记录体重弹窗 ====================
 
-/// 简单体重输入 sheet
+/// 简单体重输入 sheet（记录到指定猫咪）
 class _WeightSheet extends StatefulWidget {
-  const _WeightSheet();
+  final String catId;
+  final String catName;
+
+  const _WeightSheet({required this.catId, required this.catName});
 
   @override
   State<_WeightSheet> createState() => _WeightSheetState();
@@ -1527,17 +1566,15 @@ class _WeightSheetState extends State<_WeightSheet> {
       return;
     }
     final store = context.read<CatStore>();
-    final cat = store.currentCat;
-    if (cat == null) return;
     store.addWeight(WeightLog(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
-      catId: cat.id,
+      catId: widget.catId,
       date: DateTime.now(),
       weight: w,
     ));
     Navigator.of(context).pop();
     showPawCelebration(context, emoji: '⚖️');
-    showCuteToast(context, '体重记录好啦 ⚖️');
+    showCuteToast(context, '${widget.catName}的体重记好啦 ⚖️');
   }
 
   @override
@@ -1548,10 +1585,10 @@ class _WeightSheetState extends State<_WeightSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Center(
+          Center(
             child: Text(
-              '记录体重 ⚖️',
-              style: TextStyle(
+              '记录${widget.catName}的体重 ⚖️',
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textMain,

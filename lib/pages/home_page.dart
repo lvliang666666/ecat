@@ -1,13 +1,12 @@
 // eCAT 首页「今天」页面
-// 模块：问候区 / 猫咪切换行 / 当前猫咪档案卡 / 今日喂食进度 / 健康提醒 / 无猫咪空态
-// 数据全部来自 CatStore（按当前猫咪隔离）；快捷记录复用 openQuickRecord。
+// 模块：问候区 / 猫咪查看 tags（横向滑动，仅切换查看对象）/ 档案卡 / 今日喂食进度 / 健康提醒 / 无猫咪空态
+// 查看对象是页面本地状态（点 tags 即看，无副作用）；「记一笔」固定记到猫咪页选定的记录对象。
 library;
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../main.dart' show CatSwitcher;
 import '../models/cat.dart';
 import '../store/cat_store.dart';
 import '../theme/app_theme.dart';
@@ -26,6 +25,9 @@ class TodayPage extends StatefulWidget {
 }
 
 class _TodayPageState extends State<TodayPage> {
+  /// 当前查看的猫咪 id（查看对象，与记录对象无关）
+  String? _viewCatId;
+
   @override
   Widget build(BuildContext context) {
     final store = context.watch<CatStore>();
@@ -36,28 +38,40 @@ class _TodayPageState extends State<TodayPage> {
       return const SafeArea(child: _NoCatEmpty());
     }
 
-    final cat = store.currentCat!;
+    // 查看对象：本地状态优先，失效（被删）时回退记录对象
+    final cats = store.cats;
+    var viewCat = cats.where((c) => c.id == _viewCatId).firstOrNull;
+    viewCat ??= store.currentCat ?? cats.first;
+    if (viewCat.id != _viewCatId) _viewCatId = viewCat.id;
+
+    final recordingTarget = store.currentCat;
+
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         children: [
           _Greeting(now: now),
           const SizedBox(height: 12),
-          // 猫咪切换行：仅多猫时显示
-          if (store.cats.length > 1) ...[
-            const CatSwitcher(),
+          // 猫咪查看 tags：横向滑动，点击仅切换查看对象
+          if (cats.length > 1) ...[
+            ViewCatTags(
+              cats: cats,
+              selectedId: viewCat.id,
+              recordingTargetId: recordingTarget?.id,
+              onSelect: (id) => setState(() => _viewCatId = id),
+            ),
             const SizedBox(height: 12),
           ],
-          _CatProfileCard(cat: cat, latestWeight: store.latestWeight),
+          _CatProfileCard(cat: viewCat, latestWeight: store.latestWeightOf(viewCat.id)),
           const SizedBox(height: 20),
           _TodayFeedSection(
-            feeds: store.feedsOn(now),
-            grams: store.todayFoodGrams(now),
-            goal: cat.dailyFoodGoal,
+            feeds: store.feedsOnOf(viewCat.id, now),
+            grams: store.todayFoodGramsOf(viewCat.id, now),
+            goal: viewCat.dailyFoodGoal,
           ),
           const SizedBox(height: 20),
           _HealthRemindSection(
-            reminders: store.upcomingReminders.take(3).toList(),
+            reminders: store.upcomingRemindersOf(viewCat.id).take(3).toList(),
             now: now,
           ),
         ],
