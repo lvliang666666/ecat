@@ -7,6 +7,8 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'theme/app_theme.dart';
 import 'store/cat_store.dart';
+import 'store/photo_store.dart';
+import 'widgets/common.dart' show photoResolver;
 import 'pages/home_page.dart';
 import 'pages/record_page.dart';
 import 'pages/cat_page.dart';
@@ -15,6 +17,8 @@ import 'pages/knowledge_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('zh_CN', null);
+  photoResolver = PhotoStore.resolve; // 照片头像路径解析
+  CatStore.photoDeleter = PhotoStore.delete; // 删除猫咪时级联清理照片
   final store = CatStore();
   await store.load();
   runApp(EcatApp(store: store));
@@ -100,58 +104,6 @@ class _HomePageState extends State<HomePage> {
             label: '知识',
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// 首页顶部猫咪切换器（多猫数据隔离入口）
-class CatSwitcher extends StatelessWidget {
-  const CatSwitcher({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final store = context.watch<CatStore>();
-    if (store.cats.isEmpty) return const SizedBox.shrink();
-
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: store.cats.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
-        itemBuilder: (context, i) {
-          final cat = store.cats[i];
-          final sel = cat.id == store.currentCat?.id;
-          return GestureDetector(
-            onTap: () => store.selectCat(cat.id),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: sel ? AppColors.pink : Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: sel ? AppColors.pinkDeep : AppColors.pinkLight,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Text(cat.avatar, style: const TextStyle(fontSize: 18)),
-                  const SizedBox(width: 6),
-                  Text(
-                    cat.name,
-                    style: TextStyle(
-                      color: sel ? Colors.white : AppColors.textMain,
-                      fontWeight: sel ? FontWeight.bold : FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
       ),
     );
   }

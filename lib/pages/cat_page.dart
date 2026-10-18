@@ -3,6 +3,9 @@
 // 数据全部来自 CatStore（provider），本文件不定义任何模型与存储逻辑
 library;
 
+import 'dart:io';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -10,8 +13,11 @@ import 'package:provider/provider.dart';
 
 import '../models/cat.dart';
 import '../store/cat_store.dart';
+import '../store/photo_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import 'backup_page.dart';
+import 'stats_page.dart';
 
 // ==================== 私有小工具 ====================
 
@@ -126,23 +132,90 @@ class _CatPageState extends State<CatPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
           children: [
-            // 标题栏
-            const Text(
-              '我的猫咪 🐈',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textMain,
-              ),
+            // 标题栏 + 数据备份入口
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '我的猫咪 🐈',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textMain,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const StatsPage()),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: AppColors.cream,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('📊', style: TextStyle(fontSize: 14)),
+                        SizedBox(width: 6),
+                        Text(
+                          '统计',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSub,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const BackupPage()),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: AppColors.cream,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('🗂️', style: TextStyle(fontSize: 14)),
+                        SizedBox(width: 6),
+                        Text(
+                          '备份',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSub,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             Text(
-              '共 ${cats.length} 只小主子',
+              '共 ${cats.length} 只小主子 · 绿框是当前记录对象，长按卡片可切换',
               style: const TextStyle(color: AppColors.textSub, fontSize: 13),
             ),
             const SizedBox(height: 18),
             // 猫咪卡片列表
-            for (final cat in cats) _catCard(context, store, cat),
+            for (final cat in cats)
+              GestureDetector(
+                onLongPress: () => _switchRecordingTarget(context, cat),
+                child: _catCard(context, store, cat),
+              ),
             const SizedBox(height: 6),
             PawButton(
               label: '添加猫咪',
@@ -157,14 +230,19 @@ class _CatPageState extends State<CatPage> {
 
   /// 单只猫咪卡片
   Widget _catCard(BuildContext context, CatStore store, Cat cat) {
+    final isRecordingTarget = cat.id == store.currentCat?.id;
     return CuteCard(
       margin: const EdgeInsets.only(bottom: 14),
+      // 记录对象用薄荷绿描边标识（不用角标，避免遮挡头像和名字）
+      border: isRecordingTarget
+          ? Border.all(color: AppColors.mintDeep, width: 2)
+          : null,
       onTap: () => _openDetail(context, cat),
       child: Stack(
         children: [
           Row(
             children: [
-              CatAvatar(emoji: cat.avatar, size: 58),
+              CatAvatar(emoji: cat.avatar, size: 58, photoPath: cat.photoPath),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -248,25 +326,52 @@ class _CatPageState extends State<CatPage> {
   }
 
   /// 卡片体重文案：当前猫咪显示最新体重，其余回退到目标体重
-  /// （CatStore.weights 只暴露当前猫咪的数据视图）
   String _weightLine(CatStore store, Cat cat) {
-    if (cat.id == store.currentCat?.id) {
-      final w = store.latestWeight;
-      if (w != null) return '⚖️ 最新 ${w.weight.toStringAsFixed(1)} kg';
-    }
+    final w = store.latestWeightOf(cat.id);
+    if (w != null) return '⚖️ 最新 ${w.weight.toStringAsFixed(1)} kg';
     final t = cat.targetWeight;
     if (t != null) return '🎯 目标 ${t.toStringAsFixed(1)} kg';
     return '⚖️ 体重待记录';
   }
 
-  /// 切换当前猫咪并进入详情页（详情页数据视图随 selectCat 隔离）
+  /// 进入详情页（详情页按 catId 取数，不改变记录对象）
   Future<void> _openDetail(BuildContext context, Cat cat) async {
-    final store = context.read<CatStore>();
-    await store.selectCat(cat.id);
     if (!context.mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => CatDetailPage(catId: cat.id)),
     );
+  }
+
+  /// 切换记录对象：带确认弹窗（记录归属变更需要用户明确确认）
+  Future<void> _switchRecordingTarget(BuildContext context, Cat cat) async {
+    final store = context.read<CatStore>();
+    if (cat.id == store.currentCat?.id) return; // 已是记录对象
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('把记录对象切换为「${cat.name}」？'),
+        content: const Text(
+          '之后「记一笔」喂食、体重、健康记录都会记到 TA 名下。\n\n浏览数据不受影响，随时可以再切换。',
+          style: TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child:
+                const Text('再想想', style: TextStyle(color: AppColors.textSub)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('切换到 ${cat.name}',
+                style: const TextStyle(
+                    color: AppColors.pinkDeep, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await store.selectCat(cat.id);
+    if (context.mounted) showCuteToast(context, '记录对象已切换为 ${cat.avatar} ${cat.name}');
   }
 
   /// 打开添加 / 编辑表单（cat 为 null 表示新增）
@@ -316,6 +421,9 @@ class _CatFormSheetState extends State<_CatFormSheet> {
   late bool _neutered;
   late String _avatar;
   late String _furColor;
+  String? _photoPath; // 已保存的照片文件名（编辑模式回显）
+  String? _pendingPhotoSource; // 本次新选的照片源路径（保存时才复制）
+  String? _photoToRemove; // 待删除的旧照片文件名
   String? _error; // 名字校验提示
 
   bool get _isEdit => widget.cat != null;
@@ -340,6 +448,7 @@ class _CatFormSheetState extends State<_CatFormSheet> {
     _neutered = c?.neutered ?? false;
     _avatar = c?.avatar ?? '🐱';
     _furColor = c?.furColor ?? '橘色';
+    _photoPath = c?.photoPath;
   }
 
   @override
@@ -365,6 +474,24 @@ class _CatFormSheetState extends State<_CatFormSheet> {
     if (picked != null) setState(() => _birthday = picked);
   }
 
+  /// 选照片做头像：系统相册/文件选择器，先预览，保存时才复制
+  Future<void> _pickPhoto() async {
+    const typeGroup = XTypeGroup(
+      label: '图片',
+      extensions: ['jpg', 'jpeg', 'png', 'webp'],
+    );
+    final file = await openFile(acceptedTypeGroups: [typeGroup]);
+    if (file == null) return; // 用户取消
+    setState(() {
+      _pendingPhotoSource = file.path;
+      // 新照片覆盖旧照片
+      if (_photoPath != null) {
+        _photoToRemove = _photoPath;
+        _photoPath = null;
+      }
+    });
+  }
+
   /// 保存：校验名字非空 → addCat / updateCat
   Future<void> _save() async {
     final name = _nameCtrl.text.trim();
@@ -387,6 +514,16 @@ class _CatFormSheetState extends State<_CatFormSheet> {
 
     if (_isEdit) {
       final c = widget.cat!;
+      // 照片处理：新选的照片先复制进应用目录，再清理被替换的旧照片
+      String? photoPath = _photoPath;
+      if (_pendingPhotoSource != null) {
+        try {
+          photoPath = await PhotoStore.saveFrom(_pendingPhotoSource!, c.id);
+        } catch (_) {
+          // 复制失败则保持原照片不变
+          photoPath = _photoPath;
+        }
+      }
       // 编辑模式：保留原 id，回写可变字段
       c.name = name;
       c.breed = _breedCtrl.text.trim().isEmpty ? '田园猫' : _breedCtrl.text.trim();
@@ -395,14 +532,29 @@ class _CatFormSheetState extends State<_CatFormSheet> {
       c.neutered = _neutered;
       c.furColor = _furColor;
       c.avatar = _avatar;
+      c.photoPath = photoPath;
       c.targetWeight = target;
       c.dailyFoodGoal = effectiveFoodGoal ?? Cat.defaultDailyFoodGoal;
       c.allergies = allergies;
       c.notes = _notesCtrl.text.trim();
       await store.updateCat(c);
+      // 保存成功后清理被替换/移除的旧照片文件
+      if (_photoToRemove != null && _photoToRemove != photoPath) {
+        await PhotoStore.delete(_photoToRemove);
+      }
     } else {
+      final newId = DateTime.now().microsecondsSinceEpoch.toString();
+      // 新增模式：照片复制进应用目录
+      String? photoPath;
+      if (_pendingPhotoSource != null) {
+        try {
+          photoPath = await PhotoStore.saveFrom(_pendingPhotoSource!, newId);
+        } catch (_) {
+          photoPath = null; // 复制失败则回退 emoji 头像
+        }
+      }
       await store.addCat(Cat(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        id: newId,
         name: name,
         breed: _breedCtrl.text.trim().isEmpty ? '田园猫' : _breedCtrl.text.trim(),
         birthday: _birthday,
@@ -410,6 +562,7 @@ class _CatFormSheetState extends State<_CatFormSheet> {
         neutered: _neutered,
         furColor: _furColor,
         avatar: _avatar,
+        photoPath: photoPath,
         targetWeight: target,
         dailyFoodGoal: effectiveFoodGoal,
         allergies: allergies,
@@ -452,27 +605,92 @@ class _CatFormSheetState extends State<_CatFormSheet> {
             children: [
               for (final e in _avatarChoices)
                 GestureDetector(
-                  onTap: () => setState(() => _avatar = e),
+                  onTap: () => setState(() {
+                    _avatar = e;
+                    // 选 emoji 即回到 emoji 头像
+                    if (_photoPath != null || _pendingPhotoSource != null) {
+                      _photoToRemove = _photoPath;
+                      _photoPath = null;
+                      _pendingPhotoSource = null;
+                    }
+                  }),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: _avatar == e
+                      color: (_avatar == e && _photoPath == null && _pendingPhotoSource == null)
                           ? AppColors.pinkLight
                           : AppColors.cream,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: _avatar == e
+                        color: (_avatar == e && _photoPath == null && _pendingPhotoSource == null)
                             ? AppColors.pinkDeep
                             : AppColors.pinkLight,
-                        width: _avatar == e ? 2 : 1,
+                        width: (_avatar == e && _photoPath == null && _pendingPhotoSource == null)
+                            ? 2
+                            : 1,
                       ),
                     ),
                     alignment: Alignment.center,
                     child: Text(e, style: const TextStyle(fontSize: 22)),
                   ),
                 ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // ---- 照片头像 ----
+          Row(
+            children: [
+              // 照片预览（有照片或已选新照片时显示）
+              if (_pendingPhotoSource != null)
+                ClipOval(
+                  child: Image.file(
+                    File(_pendingPhotoSource!),
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) =>
+                        const Text('📷', style: TextStyle(fontSize: 22)),
+                  ),
+                )
+              else if (_photoPath != null)
+                CatAvatar(emoji: _avatar, size: 44, photoPath: _photoPath),
+              if (_pendingPhotoSource != null || _photoPath != null) ...[
+                const SizedBox(width: 10),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _photoToRemove = _photoPath;
+                    _photoPath = null;
+                    _pendingPhotoSource = null;
+                  }),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    textStyle: const TextStyle(fontSize: 13),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                  child: const Text('移除照片'),
+                ),
+              ],
+              const Spacer(),
+              OutlinedButton.icon(
+                onPressed: _pickPhoto,
+                icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                label: Text(
+                  _pendingPhotoSource != null || _photoPath != null
+                      ? '换一张'
+                      : '用照片做头像',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.pinkDeep,
+                  side: const BorderSide(color: AppColors.pink),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -755,14 +973,14 @@ class _CatDetailPageState extends State<CatDetailPage> {
   @override
   Widget build(BuildContext context) {
     final store = context.watch<CatStore>();
-    // 详情页数据视图跟随当前猫咪；找不到（刚被删除）时退回列表
+    // 详情页按 catId 取数（查看不改变记录对象）；找不到（刚被删除）时退回列表
     final cat =
         store.cats.where((c) => c.id == widget.catId).firstOrNull;
     if (cat == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final weights = store.weights; // 当前猫咪体重（日期升序）
-    final healths = store.healths.toList()
+    final weights = store.weightsOf(cat.id); // 该猫体重（日期升序）
+    final healths = store.healthsOf(cat.id).toList()
       ..sort((a, b) => b.date.compareTo(a.date)); // 健康记录按日期倒序
 
     return Scaffold(
@@ -816,7 +1034,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
                 ),
               ),
             ),
-            _weightChartCard(weights),
+            _weightChartCard(cat, weights),
             const SizedBox(height: 20),
 
             // ---- 健康时间线 ----
@@ -879,7 +1097,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
           Center(
             child: Column(
               children: [
-                CatAvatar(emoji: cat.avatar, size: 84),
+                CatAvatar(emoji: cat.avatar, size: 84, photoPath: cat.photoPath),
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -991,7 +1209,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
   }
 
   /// 体重曲线卡片（fl_chart LineChart）：固定展示最近 7 次记录
-  Widget _weightChartCard(List<WeightLog> weights) {
+  Widget _weightChartCard(Cat cat, List<WeightLog> weights) {
     // 曲线只取最近 7 次（weights 已按日期升序），横轴即这 7 次的日期
     final recent = weights.length <= 7 ? weights : weights.sublist(weights.length - 7);
     return CuteCard(
@@ -1025,7 +1243,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
             label: '记录体重',
             icon: Icons.monitor_weight_outlined,
             expanded: false,
-            onTap: () => _openWeightSheet(context),
+            onTap: () => _openWeightSheet(context, cat),
           ),
         ],
       ),
@@ -1043,7 +1261,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
     const double minY = 0;
     const double maxY = 30;
 
-    final target = context.watch<CatStore>().currentCat?.targetWeight;
+    final target = context.read<CatStore>().currentCat?.targetWeight;
 
     return LineChart(
       LineChartData(
@@ -1186,12 +1404,12 @@ class _CatDetailPageState extends State<CatDetailPage> {
     );
   }
 
-  /// 记录体重弹窗
-  Future<void> _openWeightSheet(BuildContext context) {
+  /// 记录体重弹窗（记录到当前查看的这只猫）
+  Future<void> _openWeightSheet(BuildContext context, Cat cat) {
     return showCuteSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => const _WeightSheet(),
+      builder: (_) => _WeightSheet(catId: cat.id, catName: cat.name),
     );
   }
 
@@ -1320,9 +1538,12 @@ class _CatDetailPageState extends State<CatDetailPage> {
 
 // ==================== 记录体重弹窗 ====================
 
-/// 简单体重输入 sheet
+/// 简单体重输入 sheet（记录到指定猫咪）
 class _WeightSheet extends StatefulWidget {
-  const _WeightSheet();
+  final String catId;
+  final String catName;
+
+  const _WeightSheet({required this.catId, required this.catName});
 
   @override
   State<_WeightSheet> createState() => _WeightSheetState();
@@ -1345,17 +1566,15 @@ class _WeightSheetState extends State<_WeightSheet> {
       return;
     }
     final store = context.read<CatStore>();
-    final cat = store.currentCat;
-    if (cat == null) return;
     store.addWeight(WeightLog(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
-      catId: cat.id,
+      catId: widget.catId,
       date: DateTime.now(),
       weight: w,
     ));
     Navigator.of(context).pop();
     showPawCelebration(context, emoji: '⚖️');
-    showCuteToast(context, '体重记录好啦 ⚖️');
+    showCuteToast(context, '${widget.catName}的体重记好啦 ⚖️');
   }
 
   @override
@@ -1366,10 +1585,10 @@ class _WeightSheetState extends State<_WeightSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Center(
+          Center(
             child: Text(
-              '记录体重 ⚖️',
-              style: TextStyle(
+              '记录${widget.catName}的体重 ⚖️',
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textMain,
