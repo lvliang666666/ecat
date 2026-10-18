@@ -1,6 +1,8 @@
 // eCAT 通用可爱组件库
 library;
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
@@ -359,4 +361,177 @@ void showCuteToast(BuildContext context, String msg) {
       duration: const Duration(milliseconds: 1500),
     ),
   );
+}
+
+/// 打卡成功庆祝动画：中央猫爪印弹跳 + 四周彩色粒子扩散，约 1.2s 后自动消失。
+/// 用于喂食/体重/健康/档案保存成功后的可爱反馈，不阻挡操作（忽略指针）。
+void showPawCelebration(BuildContext context, {String emoji = '🐾'}) {
+  final overlay = Overlay.of(context, rootOverlay: true);
+  late final OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (_) => _PawCelebrationOverlay(
+      emoji: emoji,
+      onFinished: () => entry.remove(),
+    ),
+  );
+  overlay.insert(entry);
+}
+
+/// 庆祝动画的 Overlay 内容：透明全屏 + 居中动画
+class _PawCelebrationOverlay extends StatefulWidget {
+  final String emoji;
+  final VoidCallback onFinished;
+
+  const _PawCelebrationOverlay({required this.emoji, required this.onFinished});
+
+  @override
+  State<_PawCelebrationOverlay> createState() => _PawCelebrationOverlayState();
+}
+
+class _PawCelebrationOverlayState extends State<_PawCelebrationOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final List<_Particle> _particles;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..forward();
+    _ctrl.addStatusListener((s) {
+      if (s == AnimationStatus.completed) widget.onFinished();
+    });
+    // 固定随机种子保证粒子形态稳定，颜色从主题色系中取
+    final rng = math.Random(7);
+    final colors = [
+      AppColors.pink,
+      AppColors.pinkDeep,
+      AppColors.butterDeep,
+      AppColors.mintDeep,
+      AppColors.skyDeep,
+    ];
+    _particles = List.generate(10, (i) {
+      final angle = rng.nextDouble() * math.pi * 2; // 均匀散开的方向
+      final dist = 90 + rng.nextDouble() * 70; // 扩散距离 90~160
+      return _Particle(
+        angle: angle,
+        distance: dist,
+        size: 6 + rng.nextDouble() * 6,
+        color: colors[i % colors.length],
+        delay: rng.nextDouble() * 0.15, // 轻微错峰出发
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _ctrl,
+          builder: (context, _) {
+            final t = _ctrl.value;
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                // 中央猫爪印：0~0.35 弹跳放大，0.65 后淡出
+                if (t < 0.8)
+                  Transform.scale(
+                    scale: _pawScale(t),
+                    child: Opacity(
+                      opacity: t < 0.6 ? 1 : 1 - (t - 0.6) / 0.2,
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.pink.withValues(alpha: 0.35),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          widget.emoji,
+                          style: const TextStyle(fontSize: 56),
+                        ),
+                      ),
+                    ),
+                  ),
+                // 彩色粒子：从中心向外扩散并淡出
+                for (final p in _particles) _buildParticle(p, t),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// 爪印缩放曲线：先过冲弹到 1.25，再回落到 1.0
+  double _pawScale(double t) {
+    if (t < 0.35) {
+      final k = t / 0.35;
+      // easeOutBack：轻微过冲的弹性放大
+      final c = 2.6;
+      final v = 1 + (c + 1) * math.pow(k - 1, 3) + c * math.pow(k - 1, 2);
+      return 0.4 + 0.85 * v.clamp(0.0, 1.4);
+    }
+    return 1.0;
+  }
+
+  /// 单个粒子：按全局进度计算位置与透明度
+  Widget _buildParticle(_Particle p, double t) {
+    // 粒子在 0.1~0.9 区间运动，带各自 delay
+    final local = ((t - 0.1 - p.delay) / 0.65).clamp(0.0, 1.0);
+    if (local <= 0) return const SizedBox.shrink();
+    final dist = p.distance * Curves.easeOutCubic.transform(local);
+    final opacity = 1 - local;
+    return Transform.translate(
+      offset: Offset(
+        math.cos(p.angle) * dist,
+        math.sin(p.angle) * dist,
+      ),
+      child: Opacity(
+        opacity: opacity,
+        child: Container(
+          width: p.size,
+          height: p.size,
+          decoration: BoxDecoration(
+            color: p.color,
+            shape: p.size > 8 ? BoxShape.circle : BoxShape.rectangle,
+            borderRadius:
+                p.size > 8 ? null : BorderRadius.circular(p.size * 0.35),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 粒子参数：方向角 / 扩散距离 / 尺寸 / 颜色 / 出发延迟
+class _Particle {
+  final double angle;
+  final double distance;
+  final double size;
+  final Color color;
+  final double delay;
+
+  const _Particle({
+    required this.angle,
+    required this.distance,
+    required this.size,
+    required this.color,
+    required this.delay,
+  });
 }

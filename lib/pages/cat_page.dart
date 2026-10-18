@@ -418,6 +418,7 @@ class _CatFormSheetState extends State<_CatFormSheet> {
     }
     if (!mounted) return;
     Navigator.of(context).pop();
+    showPawCelebration(context, emoji: _isEdit ? '✨' : '🎉');
     showCuteToast(context, _isEdit ? '档案更新好啦 🐾' : '欢迎新小主子 🐾');
   }
 
@@ -1333,6 +1334,7 @@ class _WeightSheetState extends State<_WeightSheet> {
       weight: w,
     ));
     Navigator.of(context).pop();
+    showPawCelebration(context, emoji: '⚖️');
     showCuteToast(context, '体重记录好啦 ⚖️');
   }
 
