@@ -170,6 +170,7 @@ class _FeedFormState extends State<_FeedForm> {
     ));
     if (mounted) {
       Navigator.pop(context);
+      showPawCelebration(context, emoji: '🐾');
       showCuteToast(context, '${widget.cat.name}的$_type记好啦 🍚');
     }
   }
@@ -242,6 +243,7 @@ class _WeightFormState extends State<_WeightForm> {
     ));
     if (mounted) {
       Navigator.pop(context);
+      showPawCelebration(context, emoji: '⚖️');
       showCuteToast(context, '${widget.cat.name}的体重记好啦 ⚖️');
     }
   }
@@ -368,6 +370,7 @@ class _HealthFormState extends State<_HealthForm> {
     ));
     if (mounted) {
       Navigator.pop(context);
+      showPawCelebration(context, emoji: HealthLog.categoryEmoji[_category] ?? '💊');
       showCuteToast(context, '健康记录记好啦 ${HealthLog.categoryEmoji[_category]}');
     }
   }

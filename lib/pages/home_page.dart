@@ -17,9 +17,6 @@ import 'quick_record.dart';
 // 转出快捷记录入口：main.dart 通过本文件即可使用 openQuickRecord
 export 'quick_record.dart' show openQuickRecord;
 
-/// 每日建议喂食量默认值（g），仅用于无猫咪时的兜底展示
-const double kDailyFoodGoal = Cat.defaultDailyFoodGoal;
-
 /// 首页「今天」：一眼看清今天喂了多少、体重如何、有什么提醒
 class TodayPage extends StatefulWidget {
   const TodayPage({super.key});
@@ -56,6 +53,7 @@ class _TodayPageState extends State<TodayPage> {
           _TodayFeedSection(
             feeds: store.feedsOn(now),
             grams: store.todayFoodGrams(now),
+            goal: cat.dailyFoodGoal,
           ),
           const SizedBox(height: 20),
           _HealthRemindSection(
@@ -240,7 +238,12 @@ class _CatProfileCard extends StatelessWidget {
 class _TodayFeedSection extends StatelessWidget {
   final List<FeedLog> feeds;
   final double grams;
-  const _TodayFeedSection({required this.feeds, required this.grams});
+  final double goal; // 当前猫咪的每日喂食目标（g）
+  const _TodayFeedSection({
+    required this.feeds,
+    required this.grams,
+    required this.goal,
+  });
 
   // 喂食类型 → emoji
   static const Map<String, String> _feedEmoji = {
@@ -283,9 +286,9 @@ class _TodayFeedSection extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  const Text(
-                    '建议 60g/日',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSub),
+                  Text(
+                    '目标 ${_fmtG(goal)}g/日',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSub),
                   ),
                 ],
               ),
@@ -303,9 +306,9 @@ class _TodayFeedSection extends StatelessWidget {
     );
   }
 
-  /// 粉色圆角进度条（相对每日建议量）
+  /// 粉色圆角进度条（相对当前猫咪的每日目标）
   Widget _progressBar() {
-    final p = (grams / kDailyFoodGoal).clamp(0.0, 1.0).toDouble();
+    final p = (grams / goal).clamp(0.0, 1.0).toDouble();
     return Container(
       height: 10,
       decoration: BoxDecoration(
