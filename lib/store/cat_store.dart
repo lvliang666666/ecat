@@ -150,6 +150,58 @@ class CatStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ---------- 数据备份：导出 / 导入 ----------
+
+  /// 导出全部数据为 JSON（含所有猫咪及其全部记录），供备份/迁移。
+  /// 返回的 Map 结构带 schema 版本号，便于未来格式升级时兼容旧备份。
+  Map<String, dynamic> exportJson() => {
+        'schema': 1,
+        'exportedAt': DateTime.now().toIso8601String(),
+        'cats': _cats.map((c) => c.toJson()).toList(),
+        'currentCatId': _currentCatId,
+        'feeds': _feeds.map((f) => f.toJson()).toList(),
+        'weights': _weights.map((w) => w.toJson()).toList(),
+        'healths': _healths.map((h) => h.toJson()).toList(),
+      };
+
+  /// 从备份 JSON 恢复全部数据（整体替换当前数据）。
+  /// 校验 schema 与关键字段，格式不对抛 FormatException，由调用方提示用户。
+  Future<void> importJson(Map<String, dynamic> data) async {
+    final schema = data['schema'];
+    if (schema is! int || schema > 1) {
+      throw const FormatException('不支持的备份文件版本');
+    }
+    final cats = (data['cats'] as List?)
+        ?.map((e) => Cat.decode(jsonEncode(e)))
+        .toList();
+    if (cats == null) {
+      throw const FormatException('备份文件缺少猫咪档案');
+    }
+    final feeds = (data['feeds'] as List?)
+            ?.map((e) => FeedLog.fromJson(Map<String, dynamic>.from(e)))
+            .toList() ??
+        [];
+    final weights = (data['weights'] as List?)
+            ?.map((e) => WeightLog.fromJson(Map<String, dynamic>.from(e)))
+            .toList() ??
+        [];
+    final healths = (data['healths'] as List?)
+            ?.map((e) => HealthLog.fromJson(Map<String, dynamic>.from(e)))
+            .toList() ??
+        [];
+
+    // 全部解析成功后才替换内存数据并持久化（避免半导入状态）
+    _cats = cats;
+    _feeds = feeds;
+    _weights = weights;
+    _healths = healths;
+    final cur = data['currentCatId'];
+    _currentCatId =
+        (cur is String && _cats.any((c) => c.id == cur)) ? cur : _cats.firstOrNull?.id;
+    await _persist();
+    notifyListeners();
+  }
+
   // ---------- 派生查询（当前猫咪） ----------
   List<FeedLog> feedsOn(DateTime day) =>
       feeds.where((f) => _sameDay(f.time, day)).toList()

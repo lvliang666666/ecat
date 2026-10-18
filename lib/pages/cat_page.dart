@@ -12,6 +12,7 @@ import '../models/cat.dart';
 import '../store/cat_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import 'backup_page.dart';
 
 // ==================== 私有小工具 ====================
 
@@ -126,14 +127,48 @@ class _CatPageState extends State<CatPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
           children: [
-            // 标题栏
-            const Text(
-              '我的猫咪 🐈',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textMain,
-              ),
+            // 标题栏 + 数据备份入口
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '我的猫咪 🐈',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textMain,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const BackupPage()),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: AppColors.cream,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('🗂️', style: TextStyle(fontSize: 14)),
+                        SizedBox(width: 6),
+                        Text(
+                          '备份',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSub,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             Text(
