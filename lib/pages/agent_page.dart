@@ -81,11 +81,17 @@ class _AgentPageState extends State<AgentPage> {
     _scrollToBottom();
 
     try {
+      // 流式累积：每个增量片段实时刷进占位消息（打字机效果）
+      final buf = StringBuffer();
       await AgentService.chatStream(
         agentStore: agentStore,
         catStore: catStore,
         userText: text,
-        onDelta: (_) => _scrollToBottom(),
+        onDelta: (delta) {
+          buf.write(delta);
+          agentStore.updateLastMessage(buf.toString());
+          _scrollToBottom();
+        },
       );
       await agentStore.persistMessages();
 
