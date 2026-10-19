@@ -10,7 +10,7 @@ import 'services/reminder_service.dart';
 import 'store/cat_store.dart';
 import 'store/settings_store.dart';
 import 'store/photo_store.dart';
-import 'widgets/common.dart' show photoResolver;
+import 'widgets/common.dart' show photoResolver, CuteNav, PawButton;
 import 'pages/home_page.dart';
 import 'pages/record_page.dart';
 import 'pages/cat_page.dart';
@@ -126,41 +126,37 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       body: pages[_index],
+      // 「记一笔」悬浮按钮：PawButton 自带 CuteTap（按压缩放 + 震动）
       floatingActionButton: _index == 0 || _index == 1
-          ? FloatingActionButton.extended(
-              onPressed: () => openQuickRecord(context),
-              icon: Icon(Icons.edit_rounded),
-              label: Text('记一笔'),
+          ? Padding(
+              padding: const EdgeInsets.only(right: 4, bottom: 4),
+              child: PawButton(
+                label: '记一笔',
+                icon: Icons.edit_rounded,
+                expanded: false,
+                onTap: () => openQuickRecord(context),
+              ),
             )
           : null,
-      bottomNavigationBar: NavigationBar(
+      floatingActionButtonLocation:
+          FloatingActionButtonLocation.endFloat,
+      // 底栏：CuteNav 每项独立按压反馈（放大 + 震动）
+      bottomNavigationBar: CuteNav(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        backgroundColor: AppColors.card,
-        indicatorColor: AppColors.pinkLight,
-        height: 68,
-        destinations: [
-          NavigationDestination(
-            icon: Icon(Icons.wb_sunny_outlined),
-            selectedIcon: Icon(Icons.wb_sunny, color: AppColors.pinkDeep),
-            label: '今天',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.edit_note_outlined),
-            selectedIcon: Icon(Icons.edit_note, color: AppColors.pinkDeep),
-            label: '记录',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.pets_outlined),
-            selectedIcon: Icon(Icons.pets, color: AppColors.pinkDeep),
-            label: '猫咪',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book, color: AppColors.pinkDeep),
-            label: '知识',
-          ),
+        onSelect: (i) => setState(() => _index = i),
+        icons: const [
+          Icons.wb_sunny_outlined,
+          Icons.edit_note_outlined,
+          Icons.pets_outlined,
+          Icons.menu_book_outlined,
         ],
+        selectedIcons: const [
+          Icons.wb_sunny,
+          Icons.edit_note,
+          Icons.pets,
+          Icons.menu_book,
+        ],
+        labels: const ['今天', '记录', '猫咪', '知识'],
       ),
     );
   }

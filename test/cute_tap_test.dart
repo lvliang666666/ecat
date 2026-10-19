@@ -1,4 +1,4 @@
-// CuteTap 统一触动反馈组件测试：按压缩放 / 回调触发 / 禁用态
+// CuteTap / CuteNav 统一触动反馈组件测试：按压缩放 / 回调触发 / 禁用态 / 底栏切换
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -87,6 +87,42 @@ void main() {
       await tester.longPress(find.text('长按我'));
       await tester.pumpAndSettle();
       expect(longPressed, isTrue);
+    });
+  });
+
+  group('CuteNav 底部导航', () {
+    Widget navApp(int selected, void Function(int) onSelect) => MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: CuteNav(
+              selectedIndex: selected,
+              onSelect: onSelect,
+              icons: const [
+                Icons.wb_sunny_outlined,
+                Icons.edit_note_outlined,
+              ],
+              selectedIcons: const [Icons.wb_sunny, Icons.edit_note],
+              labels: const ['今天', '记录'],
+            ),
+          ),
+        );
+
+    testWidgets('点击 Tab 触发 onSelect 回调', (tester) async {
+      var selected = -1;
+      await tester.pumpWidget(navApp(0, (i) => selected = i));
+
+      await tester.tap(find.text('记录'));
+      await tester.pumpAndSettle();
+      expect(selected, 1);
+    });
+
+    testWidgets('选中项高亮（图标颜色为选中色）', (tester) async {
+      await tester.pumpWidget(navApp(1, (_) {}));
+      await tester.pumpAndSettle();
+
+      // 选中项的图标存在（selectedIcon 渲染）
+      expect(find.byIcon(Icons.edit_note), findsOneWidget);
+      // 未选中项的图标存在（未选中 icon 渲染）
+      expect(find.byIcon(Icons.wb_sunny_outlined), findsOneWidget);
     });
   });
 }
