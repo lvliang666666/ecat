@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Agent 对话访问用户自接的 OpenAI 兼容 API（release 构建不会自动注入，必须显式声明） -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <!-- 健康提醒通知（Android 13+ 运行时请求 POST_NOTIFICATIONS） -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- 开机后恢复已排定的定时提醒 -->
@@ -6,7 +8,8 @@
     <application
         android:label="ecat"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
