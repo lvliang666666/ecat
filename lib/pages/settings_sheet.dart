@@ -90,8 +90,7 @@ class _SettingsSheet extends StatelessWidget {
           ),
         ),
         // 测试通知入口：点这行小字立即发一条（验证通知链路真实可用）
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
+        CuteTap(
           onTap: () async {
             await ReminderService.sendTestNotification();
             if (!context.mounted) return;

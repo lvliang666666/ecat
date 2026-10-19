@@ -342,7 +342,7 @@ class _WeightFormState extends State<_WeightForm> {
         // 编辑模式：可改称重日期
         if (widget.editing != null) ...[
           const SizedBox(height: 12),
-          GestureDetector(
+          CuteTap(
             onTap: _pickDate,
             child: Container(
               padding:
@@ -463,7 +463,7 @@ class _HealthFormState extends State<_HealthForm> {
         const SizedBox(height: 12),
         // 记录日期（编辑模式可改）
         if (widget.editing != null) ...[
-          GestureDetector(
+          CuteTap(
             onTap: _pickLogDate,
             child: Container(
               padding:
@@ -487,7 +487,7 @@ class _HealthFormState extends State<_HealthForm> {
           const SizedBox(height: 12),
         ],
         // 下次提醒日期
-        GestureDetector(
+        CuteTap(
           onTap: _pickNextDue,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -511,7 +511,7 @@ class _HealthFormState extends State<_HealthForm> {
                 ),
                 const Spacer(),
                 if (_nextDue != null)
-                  GestureDetector(
+                  CuteTap(
                     onTap: () => setState(() => _nextDue = null),
                     child: Icon(Icons.close_rounded,
                         size: 18, color: AppColors.textSub),

@@ -299,7 +299,7 @@ class _RecordPageState extends State<RecordPage> {
                       separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, i) {
                         final e = entries[i];
-                        return GestureDetector(
+                        return CuteTap(
                           onLongPress: () => _showEntryActions(e),
                           child: CuteCard(
                             child: _buildRow(e),
