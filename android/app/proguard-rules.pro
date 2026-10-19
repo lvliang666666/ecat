@@ -24,3 +24,15 @@
 
 # 3) 插件的 Pigeon 生成类：Dart 侧按原名 + 原签名查找
 -keep class io.flutter.plugins.sharedpreferences.** { *; }
+
+# 4) flutter_local_notifications（v1.4.0 接入）：
+#    Android 端是纯 MethodChannel 插件（无 JNI 桥接，不踩经验 1 的坑），
+#    但其定时通知链路有两处反射/隐式引用，R8 破坏后症状是「定时通知静默失效」：
+#    a) Gson 反射序列化：NotificationDetails 等模型字段名即 JSON key，
+#       混淆后 fromJson 填不进字段 → 到期不弹通知
+#    b) ScheduledNotificationReceiver / BootReceiver 由 AlarmManager 的
+#       PendingIntent 广播触发（manifest 里动态注册），剥离即失效
+-keep class com.dexterous.flutterlocalnotifications.** { *; }
+-keep class com.google.gson.** { *; }
+-keepattributes *Annotation*
+-keepattributes Signature
