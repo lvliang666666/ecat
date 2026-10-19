@@ -1,6 +1,6 @@
 // eCAT 首页「今天」页面
 // 模块：问候区 / 猫咪查看 tags（横向滑动，仅切换查看对象）/ 档案卡 / 今日喂食进度 / 健康提醒 / 无猫咪空态
-// 查看对象是页面本地状态（点 tags 即看，无副作用）；「记一笔」固定记到猫咪页选定的记录对象。
+// 查看对象是页面本地状态（点 tags 即看，无副作用）；本页纯查看，记录入口在猫咪详情页。
 library;
 
 import 'package:flutter/material.dart';
@@ -11,10 +11,6 @@ import '../models/cat.dart';
 import '../store/cat_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
-import 'quick_record.dart';
-
-// 转出快捷记录入口：main.dart 通过本文件即可使用 openQuickRecord
-export 'quick_record.dart' show openQuickRecord;
 
 /// 首页「今天」：一眼看清今天喂了多少、体重如何、有什么提醒
 class TodayPage extends StatefulWidget {
@@ -269,20 +265,9 @@ class _TodayFeedSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(
+        const SectionTitle(
           title: '今日喂食',
           emoji: '🍚',
-          trailing: CuteTap(
-            onTap: () => openQuickRecord(context, initialTab: 0),
-            child: Text(
-              '＋ 记一笔',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.pinkDeep,
-              ),
-            ),
-          ),
         ),
         CuteCard(
           child: Column(
@@ -376,28 +361,25 @@ class _TodayFeedSection extends StatelessWidget {
     );
   }
 
-  /// 空态：今天还没喂饭（点击可直接记一笔）
+  /// 空态：今天还没喂饭（纯展示，记录入口在猫咪详情页）
   Widget _emptyHint(BuildContext context) {
-    return CuteTap(
-      onTap: () => openQuickRecord(context, initialTab: 0),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          color: AppColors.pinkLight.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('🍚', style: TextStyle(fontSize: 28)),
-            SizedBox(height: 6),
-            Text(
-              '今天还没喂饭哦',
-              style: TextStyle(fontSize: 13, color: AppColors.textSub),
-            ),
-          ],
-        ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      decoration: BoxDecoration(
+        color: AppColors.pinkLight.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('🍚', style: TextStyle(fontSize: 28)),
+          SizedBox(height: 6),
+          Text(
+            '今天还没喂饭哦',
+            style: TextStyle(fontSize: 13, color: AppColors.textSub),
+          ),
+        ],
       ),
     );
   }
