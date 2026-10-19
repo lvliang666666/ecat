@@ -7,6 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'theme/app_theme.dart';
 import 'services/reminder_service.dart';
+import 'store/agent_store.dart';
 import 'store/cat_store.dart';
 import 'store/settings_store.dart';
 import 'store/photo_store.dart';
@@ -26,6 +27,8 @@ void main() async {
   await store.load();
   final settings = SettingsStore();
   await settings.load();
+  final agentStore = AgentStore();
+  await agentStore.load();
 
   // 本地提醒通知：初始化 + 启动补发错过的到期提醒 + 全量排定未来提醒
   await ReminderService.init();
@@ -49,13 +52,23 @@ void main() async {
   store.addListener(syncFeedReminder);
   settings.addListener(syncFeedReminder);
 
-  runApp(EcatApp(store: store, settings: settings));
+  runApp(EcatApp(
+    store: store,
+    settings: settings,
+    agentStore: agentStore,
+  ));
 }
 
 class EcatApp extends StatelessWidget {
   final CatStore store;
   final SettingsStore settings;
-  const EcatApp({super.key, required this.store, required this.settings});
+  final AgentStore agentStore;
+  const EcatApp({
+    super.key,
+    required this.store,
+    required this.settings,
+    required this.agentStore,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +76,7 @@ class EcatApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider.value(value: store),
         ChangeNotifierProvider.value(value: settings),
+        ChangeNotifierProvider.value(value: agentStore),
       ],
       child: ListenableBuilder(
         listenable: settings,
@@ -120,8 +134,8 @@ class _HomePageState extends State<HomePage> {
     final pages = [
       const TodayPage(),
       const RecordPage(),
-      const CatPage(),
-      KnowledgePage(),
+      KnowledgePage(), // 第3位：养猫百科 + Agent 入口
+      const CatPage(), // 第4位：猫咪档案（更像设置）
     ];
 
     return Scaffold(
@@ -141,22 +155,23 @@ class _HomePageState extends State<HomePage> {
       floatingActionButtonLocation:
           FloatingActionButtonLocation.endFloat,
       // 底栏：CuteNav 每项独立按压反馈（放大 + 震动）
+      // 顺序：今天 / 记录 / 知识（Agent 入口）/ 猫咪（档案设置）
       bottomNavigationBar: CuteNav(
         selectedIndex: _index,
         onSelect: (i) => setState(() => _index = i),
         icons: const [
           Icons.wb_sunny_outlined,
           Icons.edit_note_outlined,
-          Icons.pets_outlined,
           Icons.menu_book_outlined,
+          Icons.pets_outlined,
         ],
         selectedIcons: const [
           Icons.wb_sunny,
           Icons.edit_note,
-          Icons.pets,
           Icons.menu_book,
+          Icons.pets,
         ],
-        labels: const ['今天', '记录', '猫咪', '知识'],
+        labels: const ['今天', '记录', '知识', '猫咪'],
       ),
     );
   }
