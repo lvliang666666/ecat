@@ -80,6 +80,144 @@ class _CuteTapState extends State<CuteTap> {
   }
 }
 
+/// 底部导航栏（替代 NavigationBar）：每个 Tab 独立触动反馈。
+/// Material 的 NavigationBar 内部手势不透出，包 CuteTap 无效，
+/// 所以自绘：按下时该项图标+文字轻微放大 + 触感震动，选中态粉色胶囊指示。
+class CuteNav extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+  final List<IconData> icons;
+  final List<IconData> selectedIcons;
+  final List<String> labels;
+
+  const CuteNav({
+    super.key,
+    required this.selectedIndex,
+    required this.onSelect,
+    required this.icons,
+    required this.selectedIcons,
+    required this.labels,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 68,
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.pink.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            for (var i = 0; i < icons.length; i++)
+              Expanded(
+                child: _NavItem(
+                  icon: icons[i],
+                  selectedIcon: selectedIcons[i],
+                  label: labels[i],
+                  selected: i == selectedIndex,
+                  onTap: () => onSelect(i),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 底栏单项：按下放大 1.08 + 震动，选中态粉色胶囊底
+class _NavItem extends StatefulWidget {
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  State<_NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<_NavItem> {
+  bool _pressed = false;
+
+  void _setPressed(bool v) {
+    if (_pressed == v) return;
+    setState(() => _pressed = v);
+    if (v) cuteHaptic();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _setPressed(true),
+      onTapUp: (_) => _setPressed(false),
+      onTapCancel: () => _setPressed(false),
+      onTap: () {
+        _setPressed(false);
+        widget.onTap();
+      },
+      child: AnimatedScale(
+        scale: _pressed ? 1.08 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: widget.selected
+                    ? AppColors.pinkLight
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                widget.selected ? widget.selectedIcon : widget.icon,
+                size: 24,
+                color: widget.selected
+                    ? AppColors.pinkDeep
+                    : AppColors.textSub,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              widget.label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight:
+                    widget.selected ? FontWeight.bold : FontWeight.w500,
+                color: widget.selected
+                    ? AppColors.pinkDeep
+                    : AppColors.textSub,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// 大圆角软阴影卡片
 class CuteCard extends StatelessWidget {
   final Widget child;
