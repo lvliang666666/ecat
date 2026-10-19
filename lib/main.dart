@@ -143,11 +143,18 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       body: pages[_index],
       // 右下角悬浮「记一笔」：快捷记录弹窗（喂食/体重/健康三合一）
-      floatingActionButton: PawButton(
-        label: '记一笔',
-        icon: Icons.add_rounded,
-        onTap: () => openQuickRecord(context),
-      ),
+      // 仅「今天」「记录」两个 Tab 显示（知识/猫咪页不出现）
+      floatingActionButton: _index == 0 || _index == 1
+          ? Padding(
+              padding: const EdgeInsets.only(right: 4, bottom: 4),
+              child: PawButton(
+                label: '记一笔',
+                icon: Icons.add_rounded,
+                expanded: false,
+                onTap: () => openQuickRecord(context),
+              ),
+            )
+          : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       // 底栏：CuteNav 每项独立按压反馈（放大 + 震动）
       // 顺序：今天 / 记录 / 知识（Agent 入口）/ 猫咪（档案设置）
