@@ -9,6 +9,8 @@
 // - Android：matchDateTimeComponents.time 每日重复（系统级，一次排定永久生效）
 // - Windows：插件不支持周期调度 → 预排未来 7 天的一次性通知，
 //   每次启动/数据变化时 resync 重排，滚动覆盖。
+// 猫咪生日提醒（P5-4）：每只猫排「提前3天」+「当天」两条一次性通知，
+// 周年日期自动计算（2/29 生日在平年落到 2/28）；错过的一样走补发去重。
 library;
 
 import 'dart:io' show Platform;
@@ -19,6 +21,33 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../models/cat.dart';
+
+/// 下一个生日（周年）的提醒时刻：生日当天 09:00（offset=当天）或提前 offset 天。
+/// 2/29 生日在平年落到 2/28；返回 null 表示计算异常。
+/// 公开纯函数（无副作用），便于单元测试周年滚动与闰年边界。
+DateTime? nextBirthdayAt(DateTime birthday, DateTime now, int offsetDays) {
+  final today = DateTime(now.year, now.month, now.day);
+  // 尝试今年的周年；若生日是 2/29 且今年平年，落到 2/28
+  var candidate = _anniversaryIn(birthday, now.year);
+  // 提醒时刻 = 周年 - offset 天；若已过 → 滚到明年再算一次
+  var reminder = candidate.subtract(Duration(days: offsetDays));
+  if (reminder.isBefore(today)) {
+    candidate = _anniversaryIn(birthday, now.year + 1);
+    reminder = candidate.subtract(Duration(days: offsetDays));
+  }
+  return DateTime(reminder.year, reminder.month, reminder.day, 9);
+}
+
+/// 指定年份的周年日期（处理 2/29 → 平年 2/28）
+DateTime _anniversaryIn(DateTime birthday, int year) {
+  final day = (birthday.month == 2 && birthday.day == 29)
+      ? (_isLeapYear(year) ? 29 : 28)
+      : birthday.day;
+  return DateTime(year, birthday.month, day);
+}
+
+bool _isLeapYear(int year) =>
+    (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
 
 class ReminderService {
   ReminderService._();
@@ -92,7 +121,7 @@ class ReminderService {
     }
   }
 
-  /// 全量重排：取消全部已排定通知，按当前健康记录重新排定未来的提醒。
+  /// 全量重排：取消全部已排定通知，按当前健康记录 + 猫咪生日重新排定未来的提醒。
   /// 在启动、健康记录增删改、导入恢复、开关通知时调用。
   static Future<void> resync(List<Cat> cats, List<HealthLog> healths) async {
     if (!_initialized) return;
@@ -114,10 +143,38 @@ class ReminderService {
           );
         }
       }
+
+      // 猫咪生日提醒：提前3天 + 当天各一条
+      for (final c in cats) {
+        final b = c.birthday;
+        for (final offset in const [3, 0]) {
+          final at = _nextBirthdayAt(b, now, offset);
+          if (at == null) continue;
+          final years = at.year - b.year;
+          await _schedule(
+            id: _birthdayIdOf(c.id, offset),
+            at: at,
+            title: '🎂 ${c.name}的生日',
+            body: offset == 3
+                ? '再过3天就是${c.name}来到世界的第$years年啦，准备点小惊喜？'
+                : '今天是${c.name}的$years岁生日，祝小主子生日快乐 🎉',
+          );
+        }
+      }
     } catch (_) {
       // 排定失败静默（如 Windows 无包身份时的部分限制）
     }
   }
+
+  /// 下一个生日（周年）的提醒时刻：生日当天 09:00（offset=当天）或提前 offset 天。
+  /// 2/29 生日在平年落到 2/28；返回 null 表示计算异常。
+  static DateTime? _nextBirthdayAt(
+          DateTime birthday, DateTime now, int offsetDays) =>
+      nextBirthdayAt(birthday, now, offsetDays);
+
+  /// 生日提醒通知 id：按猫 + 提前天数区分（避免互相覆盖）
+  static int _birthdayIdOf(String catId, int offsetDays) =>
+      ('birthday_${catId}_$offsetDays').hashCode & 0x7fffffff;
 
   /// 启动补发：把「今天到期或已过期 ≤7 天且未提醒过」的条目立即弹一条通知。
   /// 覆盖应用未运行期间错过的定时通知；每条只补发一次（SP 标记去重）。
@@ -151,6 +208,32 @@ class ReminderService {
         );
         await sp.setBool(mark, true);
       }
+
+      // 生日提醒补发：当天（或提前3天窗口内）错过的一次性补上
+      for (final c in cats) {
+        final b = c.birthday;
+        for (final offset in const [3, 0]) {
+          final at = _nextBirthdayAt(b, now, offset);
+          if (at == null) continue;
+          final atDay = DateTime(at.year, at.month, at.day);
+          final lateDays = today.difference(atDay).inDays;
+          // 只补发「刚错过 0~1 天」的生日提醒（生日过太久就没意义了）
+          if (lateDays < 0 || lateDays > 1) continue;
+
+          final mark = 'ecat_notified_birthday_${c.id}_$offset';
+          if (sp.getBool(mark) ?? false) continue;
+
+          final years = at.year - b.year;
+          await _show(
+            id: _birthdayIdOf(c.id, offset),
+            title: '🎂 ${c.name}的生日',
+            body: offset == 3
+                ? '再过3天就是${c.name}来到世界的第$years年啦，准备点小惊喜？'
+                : '今天是${c.name}的$years岁生日，祝小主子生日快乐 🎉',
+          );
+          await sp.setBool(mark, true);
+        }
+      }
     } catch (_) {
       // 补发失败静默
     }
@@ -160,7 +243,9 @@ class ReminderService {
   static Future<void> clearNotifiedMarks() async {
     try {
       final sp = await SharedPreferences.getInstance();
-      final keys = sp.getKeys().where((k) => k.startsWith('ecat_notified_'));
+      final keys = sp
+          .getKeys()
+          .where((k) => k.startsWith('ecat_notified_'));
       for (final k in keys) {
         await sp.remove(k);
       }
