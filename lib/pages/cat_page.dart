@@ -17,6 +17,7 @@ import '../store/photo_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import 'backup_page.dart';
+import 'quick_record.dart';
 import 'settings_sheet.dart';
 import 'stats_page.dart';
 
@@ -1450,10 +1451,12 @@ class _CatDetailPageState extends State<CatDetailPage> {
     );
   }
 
-  /// 健康时间线条目
+  /// 健康时间线条目（长按 → 编辑 / 删除）
   Widget _healthTile(HealthLog h) {
     final emoji = HealthLog.categoryEmoji[h.category] ?? '🐾';
-    return CuteCard(
+    return GestureDetector(
+      onLongPress: () => _showHealthActions(context, h),
+      child: CuteCard(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       child: Row(
@@ -1527,7 +1530,67 @@ class _CatDetailPageState extends State<CatDetailPage> {
           ),
         ],
       ),
+      ),
     );
+  }
+
+  /// 长按健康记录：编辑 / 删除 二选一菜单
+  Future<void> _showHealthActions(BuildContext context, HealthLog h) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.pinkLight,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: Icon(Icons.edit_rounded, color: AppColors.pinkDeep),
+              title: Text(
+                '编辑',
+                style: TextStyle(
+                  color: AppColors.textMain,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () => Navigator.pop(ctx, 'edit'),
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_outline_rounded,
+                  color: AppColors.danger),
+              title: Text(
+                '删除',
+                style: TextStyle(
+                  color: AppColors.danger,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () => Navigator.pop(ctx, 'delete'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted || action == null) return;
+    if (action == 'edit') {
+      await editHealthRecord(context, h);
+    } else if (action == 'delete') {
+      await context.read<CatStore>().removeHealth(h.id);
+      if (context.mounted) showCuteToast(context, '记录已删除 🗑️');
+    }
   }
 
   /// 删除二次确认（温柔文案），确认后 pop 回列表

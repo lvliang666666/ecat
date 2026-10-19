@@ -79,18 +79,28 @@ class _SettingsSheet extends StatelessWidget {
             },
           ),
         ),
-        // 测试通知入口：长按上面卡片触发；这里放一行小提示
+        // 测试通知入口：点这行小字立即发一条（验证通知链路真实可用）
         GestureDetector(
-          onLongPress: () async {
+          behavior: HitTestBehavior.opaque,
+          onTap: () async {
             await ReminderService.sendTestNotification();
             if (!context.mounted) return;
             showCuteToast(context, '测试通知已发送，看看系统通知栏 🐾');
           },
           child: Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              '收不到通知？长按上面的开关卡片发一条测试通知试试',
-              style: TextStyle(fontSize: 11, color: AppColors.textSub),
+            padding: const EdgeInsets.only(top: 8, bottom: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '🔔 点此发送测试通知',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.pinkDeep,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

@@ -172,6 +172,15 @@ class CatStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 编辑喂食记录（按 id 整条替换）
+  Future<void> updateFeed(FeedLog log) async {
+    final i = _feeds.indexWhere((f) => f.id == log.id);
+    if (i < 0) return;
+    _feeds[i] = log;
+    await _persist();
+    notifyListeners();
+  }
+
   Future<void> removeFeed(String id) async {
     _feeds.removeWhere((f) => f.id == id);
     await _persist();
@@ -188,6 +197,22 @@ class CatStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 编辑体重记录：同日去重规则与 addWeight 一致
+  /// （改到某天后，该猫当天原有的其他记录会被本条替换）
+  Future<void> updateWeight(WeightLog log) async {
+    _weights.removeWhere((w) =>
+        w.id != log.id && w.catId == log.catId && _sameDay(w.date, log.date));
+    final i = _weights.indexWhere((w) => w.id == log.id);
+    if (i >= 0) {
+      _weights[i] = log;
+    } else {
+      _weights.add(log);
+    }
+    _weights.sort((a, b) => a.date.compareTo(b.date));
+    await _persist();
+    notifyListeners();
+  }
+
   Future<void> removeWeight(String id) async {
     _weights.removeWhere((w) => w.id == id);
     await _persist();
@@ -197,6 +222,15 @@ class CatStore extends ChangeNotifier {
   // ---------- 健康 ----------
   Future<void> addHealth(HealthLog log) async {
     _healths.add(log);
+    await _persist();
+    notifyListeners();
+  }
+
+  /// 编辑健康记录（按 id 整条替换，含 nextDue 变更 → 通知随 store 监听器重排）
+  Future<void> updateHealth(HealthLog log) async {
+    final i = _healths.indexWhere((h) => h.id == log.id);
+    if (i < 0) return;
+    _healths[i] = log;
     await _persist();
     notifyListeners();
   }
