@@ -11,12 +11,13 @@ import 'store/agent_store.dart';
 import 'store/cat_store.dart';
 import 'store/settings_store.dart';
 import 'store/photo_store.dart';
-import 'widgets/common.dart' show photoResolver, CuteNav;
+import 'widgets/common.dart' show photoResolver, CuteNav, PawButton;
 import 'pages/home_page.dart';
 import 'pages/record_page.dart';
 import 'pages/cat_page.dart';
 import 'pages/knowledge_page.dart';
 import 'pages/onboarding_page.dart';
+import 'pages/quick_record.dart' show openQuickRecord;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -141,6 +142,13 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       body: pages[_index],
+      // 右下角悬浮「记一笔」：快捷记录弹窗（喂食/体重/健康三合一）
+      floatingActionButton: PawButton(
+        label: '记一笔',
+        icon: Icons.add_rounded,
+        onTap: () => openQuickRecord(context),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       // 底栏：CuteNav 每项独立按压反馈（放大 + 震动）
       // 顺序：今天 / 记录 / 知识（Agent 入口）/ 猫咪（档案设置）
       bottomNavigationBar: CuteNav(
