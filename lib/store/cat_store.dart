@@ -38,6 +38,9 @@ class CatStore extends ChangeNotifier {
   List<HealthLog> healthsOf(String catId) =>
       List.unmodifiable(_healths.where((h) => h.catId == catId));
 
+  /// 全部猫咪的健康记录（提醒通知服务用，跨猫全量）
+  List<HealthLog> get allHealths => List.unmodifiable(_healths);
+
   /// 指定猫咪的最新体重（日期升序取末位）
   WeightLog? latestWeightOf(String catId) {
     final ws = _weights.where((w) => w.catId == catId).toList()
