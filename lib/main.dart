@@ -29,6 +29,7 @@ void main() async {
   await settings.load();
   final agentStore = AgentStore();
   await agentStore.load();
+  CatStore.agentThreadPurger = agentStore.purgeCat; // 删除猫咪时级联清理其聊天会话
 
   // 本地提醒通知：初始化 + 启动补发错过的到期提醒 + 全量排定未来提醒
   await ReminderService.init();

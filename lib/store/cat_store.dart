@@ -143,6 +143,10 @@ class CatStore extends ChangeNotifier {
       // 延迟导入避免 store 层直接依赖 photo_store 造成循环；直接调用即可（无循环）
       await _deletePhoto(photo);
     }
+    // 级联清理该猫的 Agent 聊天会话
+    try {
+      await _agentThreadPurger?.call(id);
+    } catch (_) {}
   }
 
   /// 删除照片文件（失败静默）
@@ -157,6 +161,11 @@ class CatStore extends ChangeNotifier {
   static Future<void> Function(String)? _photoStoreInstance;
   static set photoDeleter(Future<void> Function(String)? f) =>
       _photoStoreInstance = f;
+
+  /// 删除猫咪时级联清理其 Agent 会话（main.dart 注入 AgentStore.purgeCat）
+  static Future<void> Function(String)? _agentThreadPurger;
+  static set agentThreadPurger(Future<void> Function(String)? f) =>
+      _agentThreadPurger = f;
 
   Future<void> selectCat(String id) async {
     if (_currentCatId == id) return;
