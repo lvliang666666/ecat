@@ -141,6 +141,11 @@ class AppTheme {
           brightness:
               identical(c, AppPalette.dark) ? Brightness.dark : Brightness.light,
         ),
+        // 全局水波纹：粉色 + 墨水扩散（无波纹圈，反馈更「软」更可爱）
+        splashColor: c.pink.withValues(alpha: 0.25),
+        highlightColor: c.pink.withValues(alpha: 0.10),
+        splashFactory: InkSparkle.splashFactory,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         fontFamily: null,
         appBarTheme: AppBarTheme(
           backgroundColor: c.cream,

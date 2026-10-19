@@ -181,7 +181,7 @@ class BackupPage extends StatelessWidget {
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return CuteTap(
       onTap: onTap,
       child: Container(
         width: 40,

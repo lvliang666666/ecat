@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/cat.dart';
 import '../theme/app_theme.dart';
 
@@ -14,6 +15,70 @@ typedef PhotoPathResolver = Future<String?> Function(String? fileName);
 
 /// 全局照片解析器（main.dart 启动时设置）
 PhotoPathResolver? photoResolver;
+
+/// 统一触动反馈：轻触感震动（Android 真机有感觉，桌面端静默无副作用）
+void cuteHaptic() {
+  HapticFeedback.selectionClick();
+}
+
+/// 可点组件的统一按压反馈：按下轻微缩小 + 触感震动，松手回弹。
+/// 全 App 所有可点元素（按钮/胶囊/卡片/头像/入口）统一用它包一层，
+/// 替代裸 GestureDetector，保证「处处有反馈」的手感一致。
+class CuteTap extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+
+  /// 按下时的缩放比例（默认 0.96，轻微下压感）
+  final double pressScale;
+
+  const CuteTap({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.onLongPress,
+    this.pressScale = 0.96,
+  });
+
+  @override
+  State<CuteTap> createState() => _CuteTapState();
+}
+
+class _CuteTapState extends State<CuteTap> {
+  bool _pressed = false;
+
+  bool get _enabled => widget.onTap != null || widget.onLongPress != null;
+
+  void _setPressed(bool v) {
+    if (!_enabled || _pressed == v) return;
+    setState(() => _pressed = v);
+    if (v) cuteHaptic();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_enabled) return widget.child;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _setPressed(true),
+      onTapUp: (_) => _setPressed(false),
+      onTapCancel: () => _setPressed(false),
+      onTap: widget.onTap == null
+          ? null
+          : () {
+              _setPressed(false);
+              widget.onTap!();
+            },
+      onLongPress: widget.onLongPress,
+      child: AnimatedScale(
+        scale: _pressed ? widget.pressScale : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: widget.child,
+      ),
+    );
+  }
+}
 
 /// 大圆角软阴影卡片
 class CuteCard extends StatelessWidget {
@@ -54,14 +119,7 @@ class CuteCard extends StatelessWidget {
       child: child,
     );
     if (onTap == null) return body;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: onTap,
-        child: body,
-      ),
-    );
+    return CuteTap(onTap: onTap, child: body);
   }
 }
 
@@ -125,7 +183,7 @@ class PawButton extends StatelessWidget {
         ],
       ),
     );
-    final gesture = GestureDetector(
+    final gesture = CuteTap(
       onTap: onTap,
       child: btn,
     );
@@ -174,7 +232,7 @@ class CatAvatar extends StatelessWidget {
           : _PhotoImage(fileName: photoPath!, size: size),
     );
     if (onTap == null) return av;
-    return GestureDetector(onTap: onTap, child: av);
+    return CuteTap(onTap: onTap, child: av);
   }
 }
 
@@ -242,7 +300,7 @@ class ViewCatTags extends StatelessWidget {
           final cat = cats[i];
           final sel = cat.id == selectedId;
           final isTarget = cat.id == recordingTargetId;
-          return GestureDetector(
+          return CuteTap(
             onTap: () => onSelect(cat.id),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -312,7 +370,7 @@ class ChipChoice<T> extends StatelessWidget {
         final sel = v == selected;
         final label = labels?[v] ?? v.toString();
         final emoji = emojis?[v];
-        return GestureDetector(
+        return CuteTap(
           onTap: () => onSelect(v),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),

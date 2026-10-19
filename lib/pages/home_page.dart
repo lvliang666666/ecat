@@ -272,7 +272,7 @@ class _TodayFeedSection extends StatelessWidget {
         SectionTitle(
           title: '今日喂食',
           emoji: '🍚',
-          trailing: GestureDetector(
+          trailing: CuteTap(
             onTap: () => openQuickRecord(context, initialTab: 0),
             child: Text(
               '＋ 记一笔',
@@ -378,7 +378,7 @@ class _TodayFeedSection extends StatelessWidget {
 
   /// 空态：今天还没喂饭（点击可直接记一笔）
   Widget _emptyHint(BuildContext context) {
-    return GestureDetector(
+    return CuteTap(
       onTap: () => openQuickRecord(context, initialTab: 0),
       child: Container(
         width: double.infinity,

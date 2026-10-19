@@ -147,7 +147,7 @@ class _CatPageState extends State<CatPage> {
                     ),
                   ),
                 ),
-                GestureDetector(
+                CuteTap(
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const StatsPage()),
                   ),
@@ -176,7 +176,7 @@ class _CatPageState extends State<CatPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                GestureDetector(
+                CuteTap(
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const BackupPage()),
                   ),
@@ -205,7 +205,7 @@ class _CatPageState extends State<CatPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                GestureDetector(
+                CuteTap(
                   onTap: () => showSettingsSheet(context),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -241,7 +241,7 @@ class _CatPageState extends State<CatPage> {
             const SizedBox(height: 18),
             // 猫咪卡片列表
             for (final cat in cats)
-              GestureDetector(
+              CuteTap(
                 onLongPress: () => _switchRecordingTarget(context, cat),
                 child: _catCard(context, store, cat),
               ),
@@ -329,7 +329,7 @@ class _CatPageState extends State<CatPage> {
           Positioned(
             top: 0,
             right: 0,
-            child: GestureDetector(
+            child: CuteTap(
               onTap: () => _openForm(context, cat),
               child: Container(
                 padding:
@@ -633,7 +633,7 @@ class _CatFormSheetState extends State<_CatFormSheet> {
             runSpacing: 10,
             children: [
               for (final e in _avatarChoices)
-                GestureDetector(
+                CuteTap(
                   onTap: () => setState(() {
                     _avatar = e;
                     // 选 emoji 即回到 emoji 头像
@@ -754,7 +754,7 @@ class _CatFormSheetState extends State<_CatFormSheet> {
             runSpacing: 8,
             children: [
               for (final b in _breedChoices)
-                GestureDetector(
+                CuteTap(
                   onTap: () => setState(() => _breedCtrl.text = b),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -779,7 +779,7 @@ class _CatFormSheetState extends State<_CatFormSheet> {
           // ---- 生日 ----
           _FormLabel('生日'),
           const SizedBox(height: 8),
-          GestureDetector(
+          CuteTap(
             onTap: _pickBirthday,
             child: Container(
               width: double.infinity,
@@ -858,7 +858,7 @@ class _CatFormSheetState extends State<_CatFormSheet> {
             runSpacing: 8,
             children: [
               for (final f in _furColorChoices)
-                GestureDetector(
+                CuteTap(
                   onTap: () => setState(() => _furColor = f),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -1049,19 +1049,19 @@ class _CatDetailPageState extends State<CatDetailPage> {
             SectionTitle(
               title: '体重曲线',
               emoji: '⚖️',
-              trailing: GestureDetector(
-                onTap: weights.isEmpty
-                    ? null
-                    : () => _openWeightHistory(context, store),
-                child: Text(
-                  '历史体重 ›',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.pinkDeep,
-                  ),
-                ),
-              ),
+              trailing: weights.isEmpty
+                  ? null
+                  : CuteTap(
+                      onTap: () => _openWeightHistory(context, store),
+                      child: Text(
+                        '历史体重 ›',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.pinkDeep,
+                        ),
+                      ),
+                    ),
             ),
             _weightChartCard(cat, weights),
             const SizedBox(height: 20),
@@ -1102,7 +1102,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return CuteTap(
       onTap: onTap,
       child: Container(
         width: 40,
@@ -1454,7 +1454,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
   /// 健康时间线条目（长按 → 编辑 / 删除）
   Widget _healthTile(HealthLog h) {
     final emoji = HealthLog.categoryEmoji[h.category] ?? '🐾';
-    return GestureDetector(
+    return CuteTap(
       onLongPress: () => _showHealthActions(context, h),
       child: CuteCard(
       margin: const EdgeInsets.only(bottom: 10),
@@ -1803,7 +1803,7 @@ class _WeightHistorySheet extends StatelessWidget {
       }
     }
 
-    return GestureDetector(
+    return CuteTap(
       onLongPress: () => _confirmDelete(context, w),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
