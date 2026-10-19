@@ -158,6 +158,18 @@ class ReminderService {
     } catch (_) {}
   }
 
+  /// 发送一条测试通知（设置弹层长按触发，用于验证通知链路真实可用）
+  static Future<void> sendTestNotification() async {
+    if (!_initialized) return;
+    try {
+      await _show(
+        id: 1,
+        title: '💊 测试通知',
+        body: '喵！通知链路没问题，疫苗驱虫到期时会这样提醒你 🐾',
+      );
+    } catch (_) {}
+  }
+
   /// 定时通知（未来某天 09:00）
   static Future<void> _schedule({
     required int id,

@@ -39,7 +39,7 @@ class _SettingsSheet extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        // 通知提醒开关
+        // 通知提醒开关（长按卡片可发测试通知，验证系统通知是否真实弹出）
         CuteCard(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           child: SwitchListTile(
@@ -77,6 +77,21 @@ class _SettingsSheet extends StatelessWidget {
                 await ReminderService.clearAll();
               }
             },
+          ),
+        ),
+        // 测试通知入口：长按上面卡片触发；这里放一行小提示
+        GestureDetector(
+          onLongPress: () async {
+            await ReminderService.sendTestNotification();
+            if (!context.mounted) return;
+            showCuteToast(context, '测试通知已发送，看看系统通知栏 🐾');
+          },
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              '收不到通知？长按上面的开关卡片发一条测试通知试试',
+              style: TextStyle(fontSize: 11, color: AppColors.textSub),
+            ),
           ),
         ),
         const SizedBox(height: 16),
