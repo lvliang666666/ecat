@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import 'agent_page.dart';
 
 /// 四个板块的 key（用于 ChipChoice 切换）
 const String _kTabForbidden = 'forbidden';
@@ -38,6 +39,9 @@ class _KnowledgePageState extends State<KnowledgePage> {
           children: [
             _buildHeader(),
             const SizedBox(height: 16),
+            // 养猫助手 Agent 入口（醒目大卡）
+            _AgentEntryCard(),
+            const SizedBox(height: 18),
             ChipChoice<String>(
               values: const [
                 _kTabForbidden,
@@ -477,6 +481,74 @@ class _KnowledgePageState extends State<KnowledgePage> {
       child: checked
           ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
           : null,
+    );
+  }
+}
+
+/// 养猫助手 Agent 入口大卡：渐变粉底 + 对话引导
+class _AgentEntryCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return CuteTap(
+      onTap: () => openAgentPage(context),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.pink, AppColors.pinkDeep],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.pink.withValues(alpha: 0.35),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.25),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: const Text('🐾', style: TextStyle(fontSize: 26)),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '养猫助手 · 有问必答',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '懂你家猫的 AI 助手，喂养/行为/健康都能聊',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded,
+                color: Colors.white, size: 26),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -6,6 +6,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:ecat/store/agent_store.dart';
 import 'package:ecat/store/cat_store.dart';
 import 'package:ecat/store/settings_store.dart';
 import 'package:ecat/main.dart';
@@ -19,8 +20,10 @@ void main() {
     await store.load();
     final settings = SettingsStore();
     await settings.load();
+    final agentStore = AgentStore();
+    await agentStore.load();
 
-    await tester.pumpWidget(EcatApp(store: store, settings: settings));
+    await tester.pumpWidget(EcatApp(store: store, settings: settings, agentStore: agentStore));
     await tester.pumpAndSettle();
 
     // 空数据时首页应显示「还没有猫咪档案」空态
@@ -33,8 +36,10 @@ void main() {
     await store.load();
     final settings = SettingsStore();
     await settings.load();
+    final agentStore = AgentStore();
+    await agentStore.load();
 
-    await tester.pumpWidget(EcatApp(store: store, settings: settings));
+    await tester.pumpWidget(EcatApp(store: store, settings: settings, agentStore: agentStore));
     await tester.pumpAndSettle();
 
     // 首次启动应显示引导页
@@ -54,8 +59,10 @@ void main() {
     await store.load();
     final settings = SettingsStore();
     await settings.load();
+    final agentStore = AgentStore();
+    await agentStore.load();
 
-    await tester.pumpWidget(EcatApp(store: store, settings: settings));
+    await tester.pumpWidget(EcatApp(store: store, settings: settings, agentStore: agentStore));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('下一步'));
