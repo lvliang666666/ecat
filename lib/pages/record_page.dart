@@ -262,24 +262,57 @@ class _RecordPageState extends State<RecordPage> {
             ),
             const SizedBox(height: 16),
 
-            // ---------- 筛选胶囊行 ----------
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: ChipChoice<int>(
-                values: const [_Filter.all, _Filter.feed, _Filter.weight, _Filter.health],
-                selected: _filter,
-                onSelect: (v) => setState(() => _filter = v),
-                labels: const {
-                  _Filter.all: '全部',
-                  _Filter.feed: '喂食',
-                  _Filter.weight: '体重',
-                  _Filter.health: '健康',
-                },
-                emojis: const {
-                  _Filter.all: '🐾',
-                  _Filter.feed: '🍚',
-                  _Filter.weight: '⚖️',
-                  _Filter.health: '💊',
+            // ---------- 筛选胶囊行（横向滑动，与今天页 tags 同风格） ----------
+            SizedBox(
+              height: 44,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: 4,
+                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                itemBuilder: (context, i) {
+                  const values = [_Filter.all, _Filter.feed, _Filter.weight, _Filter.health];
+                  const labels = {
+                    _Filter.all: '全部',
+                    _Filter.feed: '喂食',
+                    _Filter.weight: '体重',
+                    _Filter.health: '健康',
+                  };
+                  const emojis = {
+                    _Filter.all: '🐾',
+                    _Filter.feed: '🍚',
+                    _Filter.weight: '⚖️',
+                    _Filter.health: '💊',
+                  };
+                  final v = values[i];
+                  final sel = _filter == v;
+                  return CuteTap(
+                    onTap: () => setState(() => _filter = v),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: sel ? AppColors.pink : Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: sel ? AppColors.pinkDeep : AppColors.pinkLight,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(emojis[v]!, style: const TextStyle(fontSize: 18)),
+                          const SizedBox(width: 6),
+                          Text(
+                            labels[v]!,
+                            style: TextStyle(
+                              color: sel ? Colors.white : AppColors.textMain,
+                              fontWeight: sel ? FontWeight.bold : FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
