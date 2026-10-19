@@ -1,5 +1,6 @@
 // eCAT · 记录簿页 —— 当前猫咪的全部历史记录时间线
-// 合并喂食 / 体重 / 健康三类记录，按时间倒序展示，支持类型筛选与长按删除。
+// 合并喂食 / 体重 / 健康三类记录，按时间倒序展示，支持类型筛选。
+// 本页纯查看 + 长按编辑/删除；新增记录入口在猫咪详情页。
 library;
 
 import 'package:flutter/material.dart';
@@ -324,7 +325,7 @@ class _RecordPageState extends State<RecordPage> {
                   ? const EmptyState(
                       emoji: '📖',
                       title: '还没有记录',
-                      subtitle: '点右下角「记一笔」开始记录吧',
+                      subtitle: '去猫咪详情页记录喂食、体重和健康吧',
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),

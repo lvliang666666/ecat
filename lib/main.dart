@@ -11,7 +11,7 @@ import 'store/agent_store.dart';
 import 'store/cat_store.dart';
 import 'store/settings_store.dart';
 import 'store/photo_store.dart';
-import 'widgets/common.dart' show photoResolver, CuteNav, PawButton;
+import 'widgets/common.dart' show photoResolver, CuteNav;
 import 'pages/home_page.dart';
 import 'pages/record_page.dart';
 import 'pages/cat_page.dart';
@@ -141,20 +141,6 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       body: pages[_index],
-      // 「记一笔」悬浮按钮：PawButton 自带 CuteTap（按压缩放 + 震动）
-      floatingActionButton: _index == 0 || _index == 1
-          ? Padding(
-              padding: const EdgeInsets.only(right: 4, bottom: 4),
-              child: PawButton(
-                label: '记一笔',
-                icon: Icons.edit_rounded,
-                expanded: false,
-                onTap: () => openQuickRecord(context),
-              ),
-            )
-          : null,
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation.endFloat,
       // 底栏：CuteNav 每项独立按压反馈（放大 + 震动）
       // 顺序：今天 / 记录 / 知识（Agent 入口）/ 猫咪（档案设置）
       bottomNavigationBar: CuteNav(
