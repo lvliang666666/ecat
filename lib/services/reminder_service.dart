@@ -5,7 +5,13 @@
 //   另在启动/数据变化时对「今天到期或已过期且未提醒过」的条目立即补发一条，
 //   覆盖「应用没在运行时定时通知丢失」的场景（Windows 非常驻进程尤其需要）。
 // 去重：每条 HealthLog 只补发一次，标记存 SharedPreferences（ecat_notified_<logId>）。
+// 每日喂食提醒（P5-3）：
+// - Android：matchDateTimeComponents.time 每日重复（系统级，一次排定永久生效）
+// - Windows：插件不支持周期调度 → 预排未来 7 天的一次性通知，
+//   每次启动/数据变化时 resync 重排，滚动覆盖。
 library;
+
+import 'dart:io' show Platform;
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,6 +31,11 @@ class ReminderService {
   static const _channelName = '健康提醒';
   static const _channelDesc = '疫苗、驱虫等健康事项到期提醒';
 
+  /// 喂食提醒渠道（Android，独立渠道便于用户单独关闭）
+  static const _feedChannelId = 'ecat_feed_reminders';
+  static const _feedChannelName = '喂食提醒';
+  static const _feedChannelDesc = '每天固定时间提醒给猫咪喂饭';
+
   /// Windows 通知的应用标识（固定 GUID 标识本应用的 toast）
   static const _winAppName = 'eCAT 喵喵管家';
   static const _winAppUserModelId = 'com.lvproject.ecat';
@@ -32,6 +43,12 @@ class ReminderService {
 
   /// 提醒通知 id 基数：与未来可能的其他通知类型区分
   static int _idOf(String logId) => logId.hashCode & 0x7fffffff;
+
+  /// 喂食提醒固定 id（单条每日提醒，重复排定会覆盖同 id）
+  static const _feedReminderId = 2;
+
+  /// Windows 预排喂食提醒的天数（滚动覆盖窗口）
+  static const _feedWindowsDays = 7;
 
   /// 初始化插件（main() 启动时调用一次；失败静默，不影响 App 运行）
   static Future<void> init() async {
@@ -158,6 +175,78 @@ class ReminderService {
     } catch (_) {}
   }
 
+  // ---------- 每日喂食提醒（P5-3） ----------
+
+  /// 排定/重排每日喂食提醒。
+  /// - enabled=false：只取消喂食提醒（不动健康提醒）
+  /// - Android：matchDateTimeComponents.time 每日重复，一次排定
+  /// - Windows：预排未来 7 天的一次性通知（插件不支持周期调度），
+  ///   每次启动/数据变化时由 resyncFeedReminder 重排滚动覆盖。
+  static Future<void> resyncFeedReminder({
+    required bool enabled,
+    required int minutesOfDay,
+    required List<Cat> cats,
+  }) async {
+    if (!_initialized) return;
+    try {
+      await _plugin.cancel(id: _feedReminderId);
+      if (!enabled || cats.isEmpty) return;
+
+      final h = minutesOfDay ~/ 60;
+      final m = minutesOfDay % 60;
+      final catName = cats.length == 1 ? cats.first.name : '猫咪们';
+      final title = '🍚 该给$catName喂饭啦';
+      final body = '到点啦，看看小主子的饭碗空了没 🐾';
+
+      if (Platform.isAndroid) {
+        // 每日重复：排定下一次触发时间 + matchDateTimeComponents.time
+        final now = tz.TZDateTime.now(tz.local);
+        var next = tz.TZDateTime(tz.local, now.year, now.month, now.day, h, m);
+        if (!next.isAfter(now)) {
+          next = next.add(const Duration(days: 1));
+        }
+        final details = NotificationDetails(
+          android: const AndroidNotificationDetails(
+            _feedChannelId,
+            _feedChannelName,
+            channelDescription: _feedChannelDesc,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+        );
+        await _plugin.zonedSchedule(
+          id: _feedReminderId,
+          title: title,
+          body: body,
+          scheduledDate: next,
+          notificationDetails: details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.time,
+          payload: null,
+        );
+      } else {
+        // Windows：预排未来 7 天的一次性通知（同 id 逐个排会互相覆盖，
+        // 所以每天用不同 id：_feedReminderId + dayOffset）
+        final now = DateTime.now();
+        for (var d = 0; d < _feedWindowsDays; d++) {
+          final at = DateTime(now.year, now.month, now.day + d, h, m);
+          if (!at.isAfter(now)) continue;
+          await _schedule(
+            id: _feedReminderId + d,
+            at: at,
+            title: title,
+            body: body,
+            channelId: _feedChannelId,
+            channelName: _feedChannelName,
+            channelDesc: _feedChannelDesc,
+          );
+        }
+      }
+    } catch (_) {
+      // 排定失败静默
+    }
+  }
+
   /// 发送一条测试通知（设置弹层长按触发，用于验证通知链路真实可用）
   static Future<void> sendTestNotification() async {
     if (!_initialized) return;
@@ -176,12 +265,15 @@ class ReminderService {
     required DateTime at,
     required String title,
     required String body,
+    String channelId = _channelId,
+    String channelName = _channelName,
+    String channelDesc = _channelDesc,
   }) async {
     final details = NotificationDetails(
-      android: const AndroidNotificationDetails(
-        _channelId,
-        _channelName,
-        channelDescription: _channelDesc,
+      android: AndroidNotificationDetails(
+        channelId,
+        channelName,
+        channelDescription: channelDesc,
         importance: Importance.high,
         priority: Priority.high,
       ),
