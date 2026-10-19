@@ -96,7 +96,7 @@ class _RecordPageState extends State<RecordPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
+        title: Text(
           '删除这条记录？',
           style: TextStyle(
             color: AppColors.textMain,
@@ -106,17 +106,17 @@ class _RecordPageState extends State<RecordPage> {
         ),
         content: Text(
           '删除后就找不回来啦 🥺',
-          style: const TextStyle(color: AppColors.textSub, fontSize: 14),
+          style: TextStyle(color: AppColors.textSub, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消',
+            child: Text('取消',
                 style: TextStyle(color: AppColors.textSub)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('删除',
+            child: Text('删除',
                 style: TextStyle(
                   color: AppColors.danger,
                   fontWeight: FontWeight.bold,
@@ -145,7 +145,7 @@ class _RecordPageState extends State<RecordPage> {
 
     // 无猫咪档案：引导先去「猫咪」页添加
     if (cat == null) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppColors.cream,
         body: SafeArea(
           child: EmptyState(
@@ -171,7 +171,7 @@ class _RecordPageState extends State<RecordPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     '记录簿 📖',
                     style: TextStyle(
                       fontSize: 24,
@@ -182,7 +182,7 @@ class _RecordPageState extends State<RecordPage> {
                   const SizedBox(height: 4),
                   Text(
                     '${cat.name} 的小日子',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSub,
                     ),
@@ -265,7 +265,7 @@ class _RecordPageState extends State<RecordPage> {
             children: [
               Text(
                 '吃了${f.type} ${_fmtAmount(f.amount)}$unit',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textMain,
@@ -274,13 +274,13 @@ class _RecordPageState extends State<RecordPage> {
               const SizedBox(height: 4),
               Text(
                 _timeText(f.time),
-                style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+                style: TextStyle(fontSize: 12, color: AppColors.textSub),
               ),
               if (f.note.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
                   f.note,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 12, color: AppColors.textSub),
                 ),
               ],
@@ -304,7 +304,7 @@ class _RecordPageState extends State<RecordPage> {
             children: [
               Text(
                 '体重 ${w.weight} kg',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textMain,
@@ -313,7 +313,7 @@ class _RecordPageState extends State<RecordPage> {
               const SizedBox(height: 4),
               Text(
                 DateFormat('MM/dd HH:mm').format(w.date),
-                style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+                style: TextStyle(fontSize: 12, color: AppColors.textSub),
               ),
             ],
           ),
@@ -339,7 +339,7 @@ class _RecordPageState extends State<RecordPage> {
                   Flexible(
                     child: Text(
                       '${HealthLog.categories[h.category] ?? '健康'} · ${h.title}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textMain,
@@ -358,7 +358,7 @@ class _RecordPageState extends State<RecordPage> {
                       ),
                       child: Text(
                         '下次：${DateFormat('MM/dd').format(h.nextDue!)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           color: AppColors.butterDeep,
                           fontWeight: FontWeight.w600,
@@ -371,13 +371,13 @@ class _RecordPageState extends State<RecordPage> {
               const SizedBox(height: 4),
               Text(
                 DateFormat('MM/dd HH:mm').format(h.date),
-                style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+                style: TextStyle(fontSize: 12, color: AppColors.textSub),
               ),
               if (h.note.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
                   h.note,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 12, color: AppColors.textSub),
                 ),
               ],

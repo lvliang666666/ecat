@@ -112,7 +112,7 @@ class _StatsPageState extends State<StatsPage> {
           icon: Icons.arrow_back_ios_new_rounded,
           onTap: () => Navigator.of(context).pop(),
         ),
-        const Expanded(
+        Expanded(
           child: Center(
             child: Text(
               '统计面板 📊',
@@ -191,7 +191,7 @@ class _StatsPageState extends State<StatsPage> {
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 12, color: AppColors.textSub, height: 1.4),
                 ),
               ],
@@ -221,7 +221,7 @@ class _StatsPageState extends State<StatsPage> {
               const SizedBox(width: 8),
               Text(
                 '${cat.name}的喂食统计',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textMain,
@@ -248,14 +248,14 @@ class _StatsPageState extends State<StatsPage> {
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.bold,
             color: AppColors.pinkDeep,
           ),
         ),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSub)),
+        Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSub)),
       ],
     );
   }
@@ -283,7 +283,7 @@ class _StatsPageState extends State<StatsPage> {
               const SizedBox(width: 8),
               Text(
                 '${cat.name}的每日喂食量',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textMain,
@@ -292,7 +292,7 @@ class _StatsPageState extends State<StatsPage> {
               const Spacer(),
               Text(
                 '目标线 ${goal.toStringAsFixed(0)}g',
-                style: const TextStyle(fontSize: 11, color: AppColors.textSub),
+                style: TextStyle(fontSize: 11, color: AppColors.textSub),
               ),
             ],
           ),
@@ -324,14 +324,14 @@ class _StatsPageState extends State<StatsPage> {
           show: true,
           drawVerticalLine: false,
           horizontalInterval: maxY / 4,
-          getDrawingHorizontalLine: (v) => const FlLine(
+          getDrawingHorizontalLine: (v) => FlLine(
             color: AppColors.pinkLight,
             strokeWidth: 1,
           ),
         ),
         borderData: FlBorderData(
           show: true,
-          border: const Border(
+          border: Border(
             bottom: BorderSide(color: AppColors.pinkLight, width: 1),
             left: BorderSide(color: AppColors.pinkLight, width: 1),
             right: BorderSide(color: Colors.transparent),
@@ -352,7 +352,7 @@ class _StatsPageState extends State<StatsPage> {
                 meta: meta,
                 child: Text(
                   v.toInt().toString(),
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: AppColors.textSub, fontSize: 10),
                 ),
               ),
@@ -375,7 +375,7 @@ class _StatsPageState extends State<StatsPage> {
                   meta: meta,
                   child: Text(
                     DateFormat('M/d').format(days[i].date),
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textSub, fontSize: 9),
                   ),
                 );
@@ -388,7 +388,7 @@ class _StatsPageState extends State<StatsPage> {
             getTooltipColor: (_) => AppColors.pinkDeep,
             getTooltipItem: (group, gi, rod, ri) => BarTooltipItem(
               '${DateFormat('M月d日').format(days[group.x].date)}\n${rod.toY.toStringAsFixed(0)}g',
-              const TextStyle(
+              TextStyle(
                 color: Colors.white,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -437,7 +437,7 @@ class _StatsPageState extends State<StatsPage> {
       child: Container(
         width: 40,
         height: 40,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.card,
           shape: BoxShape.circle,
         ),

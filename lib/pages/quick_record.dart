@@ -54,7 +54,7 @@ class _QuickRecordSheetState extends State<_QuickRecordSheet> {
               const SizedBox(width: 8),
               Text(
                 '给「${cat.name}」记一笔',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textMain,
@@ -204,7 +204,7 @@ class _WeightFormState extends State<_WeightForm> {
             ),
             child: Text(
               '上次记录：${latest.weight} kg（${DateFormat('MM月dd日').format(latest.date)}）',
-              style: const TextStyle(color: AppColors.mintDeep),
+              style: TextStyle(color: AppColors.mintDeep),
             ),
           ),
         const SizedBox(height: 16),
@@ -317,7 +317,7 @@ class _HealthFormState extends State<_HealthForm> {
                 if (_nextDue != null)
                   GestureDetector(
                     onTap: () => setState(() => _nextDue = null),
-                    child: const Icon(Icons.close_rounded,
+                    child: Icon(Icons.close_rounded,
                         size: 18, color: AppColors.textSub),
                   ),
               ],

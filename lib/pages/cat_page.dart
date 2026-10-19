@@ -17,6 +17,7 @@ import '../store/photo_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import 'backup_page.dart';
+import 'settings_sheet.dart';
 import 'stats_page.dart';
 
 // ==================== 私有小工具 ====================
@@ -72,7 +73,7 @@ Widget _neuteredBadge() => Container(
         color: AppColors.mint,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: const Text(
+      child: Text(
         '已绝育',
         style: TextStyle(
           color: AppColors.mintDeep,
@@ -135,7 +136,7 @@ class _CatPageState extends State<CatPage> {
             // 标题栏 + 数据备份入口
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     '我的猫咪 🐈',
                     style: TextStyle(
@@ -156,7 +157,7 @@ class _CatPageState extends State<CatPage> {
                       color: AppColors.cream,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text('📊', style: TextStyle(fontSize: 14)),
@@ -185,7 +186,7 @@ class _CatPageState extends State<CatPage> {
                       color: AppColors.cream,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text('🗂️', style: TextStyle(fontSize: 14)),
@@ -202,12 +203,39 @@ class _CatPageState extends State<CatPage> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => showSettingsSheet(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: AppColors.cream,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('⚙️', style: TextStyle(fontSize: 14)),
+                        SizedBox(width: 6),
+                        Text(
+                          '设置',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSub,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               '共 ${cats.length} 只小主子 · 绿框是当前记录对象，长按卡片可切换',
-              style: const TextStyle(color: AppColors.textSub, fontSize: 13),
+              style: TextStyle(color: AppColors.textSub, fontSize: 13),
             ),
             const SizedBox(height: 18),
             // 猫咪卡片列表
@@ -255,7 +283,7 @@ class _CatPageState extends State<CatPage> {
                             cat.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textMain,
@@ -269,7 +297,7 @@ class _CatPageState extends State<CatPage> {
                     const SizedBox(height: 4),
                     Text(
                       '${cat.breed} · ${cat.ageText()}',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: AppColors.textSub, fontSize: 13),
                     ),
                     const SizedBox(height: 6),
@@ -284,7 +312,7 @@ class _CatPageState extends State<CatPage> {
                             _weightLine(store, cat),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 color: AppColors.textSub, fontSize: 12),
                           ),
                         ),
@@ -309,7 +337,7 @@ class _CatPageState extends State<CatPage> {
                   color: AppColors.pinkLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
+                child: Text(
                   '编辑',
                   style: TextStyle(
                     color: AppColors.pinkDeep,
@@ -358,12 +386,12 @@ class _CatPageState extends State<CatPage> {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
             child:
-                const Text('再想想', style: TextStyle(color: AppColors.textSub)),
+                Text('再想想', style: TextStyle(color: AppColors.textSub)),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text('切换到 ${cat.name}',
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.pinkDeep, fontWeight: FontWeight.bold)),
           ),
         ],
@@ -587,7 +615,7 @@ class _CatFormSheetState extends State<_CatFormSheet> {
           Center(
             child: Text(
               _isEdit ? '编辑档案 ✏️' : '添加猫咪 🐾',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textMain,
@@ -685,7 +713,7 @@ class _CatFormSheetState extends State<_CatFormSheet> {
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.pinkDeep,
-                  side: const BorderSide(color: AppColors.pink),
+                  side: BorderSide(color: AppColors.pink),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -736,7 +764,7 @@ class _CatFormSheetState extends State<_CatFormSheet> {
                     ),
                     child: Text(
                       b,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textMain,
                         fontSize: 12,
                       ),
@@ -767,13 +795,13 @@ class _CatFormSheetState extends State<_CatFormSheet> {
                   Expanded(
                     child: Text(
                       '${_fmtDate(_birthday)} · ${_ageTextOf(_birthday)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textMain,
                         fontSize: 15,
                       ),
                     ),
                   ),
-                  const Icon(Icons.expand_more_rounded,
+                  Icon(Icons.expand_more_rounded,
                       color: AppColors.textSub, size: 20),
                 ],
               ),
@@ -804,7 +832,7 @@ class _CatFormSheetState extends State<_CatFormSheet> {
               children: [
                 const Text('✂️', style: TextStyle(fontSize: 16)),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
                     '已绝育',
                     style: TextStyle(color: AppColors.textMain, fontSize: 15),
@@ -942,14 +970,14 @@ class _FormLabel extends StatelessWidget {
       children: [
         Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.textMain,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
         ),
         if (required)
-          const Text(' *',
+          Text(' *',
               style: TextStyle(color: AppColors.danger, fontSize: 14)),
       ],
     );
@@ -995,7 +1023,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
                   icon: Icons.arrow_back_ios_new_rounded,
                   onTap: () => Navigator.of(context).pop(),
                 ),
-                const Expanded(
+                Expanded(
                   child: Center(
                     child: Text(
                       '猫咪档案 🐾',
@@ -1024,7 +1052,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
                 onTap: weights.isEmpty
                     ? null
                     : () => _openWeightHistory(context, store),
-                child: const Text(
+                child: Text(
                   '历史体重 ›',
                   style: TextStyle(
                     fontSize: 13,
@@ -1078,7 +1106,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
       child: Container(
         width: 40,
         height: 40,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.card,
           shape: BoxShape.circle,
         ),
@@ -1104,7 +1132,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
                   children: [
                     Text(
                       cat.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textMain,
@@ -1146,7 +1174,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
                     ),
                     child: Text(
                       '⚠️ 过敏：$a',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.danger,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -1168,7 +1196,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
               ),
               child: Text(
                 '📝 ${cat.notes}',
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.textMain, fontSize: 13, height: 1.5),
               ),
             ),
@@ -1190,13 +1218,13 @@ class _CatDetailPageState extends State<CatDetailPage> {
             width: 64,
             child: Text(
               label,
-              style: const TextStyle(color: AppColors.textSub, fontSize: 13),
+              style: TextStyle(color: AppColors.textSub, fontSize: 13),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textMain,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -1219,7 +1247,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
             height: 200,
             child: recent.length < 2
                 // 数据不足：可爱提示
-                ? const Center(
+                ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -1273,14 +1301,14 @@ class _CatDetailPageState extends State<CatDetailPage> {
           show: true,
           drawVerticalLine: false,
           horizontalInterval: 5, // 与左轴刻度一致：0/5/10/15/20/25/30
-          getDrawingHorizontalLine: (v) => const FlLine(
+          getDrawingHorizontalLine: (v) => FlLine(
             color: AppColors.pinkLight,
             strokeWidth: 1,
           ),
         ),
         borderData: FlBorderData(
           show: true,
-          border: const Border(
+          border: Border(
             bottom: BorderSide(color: AppColors.pinkLight, width: 1),
             left: BorderSide(color: AppColors.pinkLight, width: 1),
             right: BorderSide(color: Colors.transparent),
@@ -1320,7 +1348,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
               for (final s in spots)
                 LineTooltipItem(
                   '${_fmtShort(weights[s.x.toInt()].date)}\n${s.y.toStringAsFixed(2)} kg',
-                  const TextStyle(
+                  TextStyle(
                     color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -1365,7 +1393,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
                 label: HorizontalLineLabel(
                   show: true,
                   alignment: Alignment.topRight,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.mintDeep,
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -1386,7 +1414,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
       meta: meta,
       child: Text(
         value.toInt().toString(),
-        style: const TextStyle(color: AppColors.textSub, fontSize: 11),
+        style: TextStyle(color: AppColors.textSub, fontSize: 11),
       ),
     );
   }
@@ -1399,7 +1427,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
       meta: meta,
       child: Text(
         _fmtShort(weights[i].date),
-        style: const TextStyle(color: AppColors.textSub, fontSize: 10),
+        style: TextStyle(color: AppColors.textSub, fontSize: 10),
       ),
     );
   }
@@ -1434,7 +1462,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
           Container(
             width: 40,
             height: 40,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.pinkLight,
               shape: BoxShape.circle,
             ),
@@ -1453,7 +1481,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
                         h.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textMain,
@@ -1462,7 +1490,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
                     ),
                     Text(
                       _fmtDot(h.date),
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: AppColors.textSub, fontSize: 11),
                     ),
                   ],
@@ -1471,7 +1499,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
                   const SizedBox(height: 4),
                   Text(
                     h.note,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textSub, fontSize: 12, height: 1.4),
                   ),
                 ],
@@ -1486,7 +1514,7 @@ class _CatDetailPageState extends State<CatDetailPage> {
                     ),
                     child: Text(
                       '下次：${_fmtShort(h.nextDue!)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.mintDeep,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -1511,17 +1539,17 @@ class _CatDetailPageState extends State<CatDetailPage> {
         title: const Text('要和 TA 说再见吗？😿'),
         content: Text(
           '这会删除「${cat.name}」的全部记录，确定吗？',
-          style: const TextStyle(color: AppColors.textSub, fontSize: 14),
+          style: TextStyle(color: AppColors.textSub, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('再想想',
+            child: Text('再想想',
                 style: TextStyle(color: AppColors.textSub)),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('确定删除',
+            child: Text('确定删除',
                 style: TextStyle(color: AppColors.danger)),
           ),
         ],
@@ -1588,7 +1616,7 @@ class _WeightSheetState extends State<_WeightSheet> {
           Center(
             child: Text(
               '记录${widget.catName}的体重 ⚖️',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textMain,
@@ -1645,7 +1673,7 @@ class _WeightHistorySheet extends StatelessWidget {
           Center(
             child: Text(
               '历史体重 ⚖️（共 ${weights.length} 次）',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textMain,
@@ -1653,7 +1681,7 @@ class _WeightHistorySheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Center(
+          Center(
             child: Text(
               '长按某条记录可删除',
               style: TextStyle(fontSize: 12, color: AppColors.textSub),
@@ -1729,12 +1757,12 @@ class _WeightHistorySheet extends StatelessWidget {
             ],
             Text(
               _fmtDot(w.date),
-              style: const TextStyle(color: AppColors.textSub, fontSize: 13),
+              style: TextStyle(color: AppColors.textSub, fontSize: 13),
             ),
             const Spacer(),
             Text(
               '${w.weight.toStringAsFixed(2)} kg',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textMain,
@@ -1765,18 +1793,18 @@ class _WeightHistorySheet extends StatelessWidget {
         title: const Text('删除这条体重记录？'),
         content: Text(
           '${_fmtDot(w.date)} 的 ${w.weight.toStringAsFixed(2)} kg 将被删除',
-          style: const TextStyle(color: AppColors.textSub, fontSize: 14),
+          style: TextStyle(color: AppColors.textSub, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
             child:
-                const Text('再想想', style: TextStyle(color: AppColors.textSub)),
+                Text('再想想', style: TextStyle(color: AppColors.textSub)),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             child:
-                const Text('删除', style: TextStyle(color: AppColors.danger)),
+                Text('删除', style: TextStyle(color: AppColors.danger)),
           ),
         ],
       ),

@@ -103,7 +103,7 @@ class _Greeting extends StatelessWidget {
         children: [
           Text(
             '$_hello，铲屎官 🐱',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: AppColors.textMain,
@@ -112,7 +112,7 @@ class _Greeting extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             DateFormat('M月d日 EEEE', 'zh_CN').format(now),
-            style: const TextStyle(fontSize: 13, color: AppColors.textSub),
+            style: TextStyle(fontSize: 13, color: AppColors.textSub),
           ),
         ],
       ),
@@ -146,7 +146,7 @@ class _CatProfileCard extends StatelessWidget {
                         cat.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textMain,
@@ -164,7 +164,7 @@ class _CatProfileCard extends StatelessWidget {
                           color: AppColors.pinkLight,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
+                        child: Text(
                           '已绝育',
                           style: TextStyle(
                             fontSize: 11,
@@ -180,7 +180,7 @@ class _CatProfileCard extends StatelessWidget {
                 Text.rich(
                   TextSpan(
                     text: '${cat.breed} · ${cat.ageText()} · ',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSub,
                     ),
@@ -212,7 +212,7 @@ class _CatProfileCard extends StatelessWidget {
     final target = cat.targetWeight;
     return Row(
       children: [
-        const Icon(
+        Icon(
           Icons.monitor_weight_outlined,
           size: 16,
           color: AppColors.textSub,
@@ -233,7 +233,7 @@ class _CatProfileCard extends StatelessWidget {
             w == null
                 ? '目标 ${target.toStringAsFixed(1)}kg'
                 : _targetText(w.weight, target),
-            style: const TextStyle(fontSize: 12, color: AppColors.mintDeep),
+            style: TextStyle(fontSize: 12, color: AppColors.mintDeep),
           ),
         ],
       ],
@@ -274,7 +274,7 @@ class _TodayFeedSection extends StatelessWidget {
           emoji: '🍚',
           trailing: GestureDetector(
             onTap: () => openQuickRecord(context, initialTab: 0),
-            child: const Text(
+            child: Text(
               '＋ 记一笔',
               style: TextStyle(
                 fontSize: 13,
@@ -293,7 +293,7 @@ class _TodayFeedSection extends StatelessWidget {
                 children: [
                   Text(
                     '今日已喂 ${_fmtG(grams)}g',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textMain,
@@ -302,7 +302,7 @@ class _TodayFeedSection extends StatelessWidget {
                   const Spacer(),
                   Text(
                     '目标 ${_fmtG(goal)}g/日',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+                    style: TextStyle(fontSize: 12, color: AppColors.textSub),
                   ),
                 ],
               ),
@@ -355,12 +355,12 @@ class _TodayFeedSection extends StatelessWidget {
           Expanded(
             child: Text(
               f.type,
-              style: const TextStyle(fontSize: 14, color: AppColors.textMain),
+              style: TextStyle(fontSize: 14, color: AppColors.textMain),
             ),
           ),
           Text(
             '${_fmtG(f.amount)}$unit',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: AppColors.pinkDeep,
@@ -369,7 +369,7 @@ class _TodayFeedSection extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             DateFormat('HH:mm').format(f.time),
-            style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+            style: TextStyle(fontSize: 12, color: AppColors.textSub),
           ),
         ],
       ),
@@ -387,7 +387,7 @@ class _TodayFeedSection extends StatelessWidget {
           color: AppColors.pinkLight.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text('🍚', style: TextStyle(fontSize: 28)),
@@ -444,7 +444,7 @@ class _HealthRemindSection extends StatelessWidget {
                   h.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textMain,
@@ -453,7 +453,7 @@ class _HealthRemindSection extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   HealthLog.categories[h.category] ?? '健康',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+                  style: TextStyle(fontSize: 12, color: AppColors.textSub),
                 ),
               ],
             ),
@@ -514,7 +514,7 @@ class _HealthRemindSection extends StatelessWidget {
         color: AppColors.mint.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Column(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('💊', style: TextStyle(fontSize: 30)),

@@ -20,7 +20,7 @@ class CuteCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry? margin;
-  final Color color;
+  final Color? color;
   final Border? border;
   final VoidCallback? onTap;
 
@@ -29,7 +29,7 @@ class CuteCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(16),
     this.margin,
-    this.color = AppColors.card,
+    this.color, // null = 当前调色板的卡片色（运行时解析，支持深色模式）
     this.border,
     this.onTap,
   });
@@ -40,7 +40,7 @@ class CuteCard extends StatelessWidget {
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: color,
+        color: color ?? AppColors.card,
         borderRadius: BorderRadius.circular(24),
         border: border,
         boxShadow: [
@@ -69,7 +69,7 @@ class CuteCard extends StatelessWidget {
 class PawButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
-  final Color color;
+  final Color? color;
   final Color textColor;
   final IconData? icon;
   final bool expanded;
@@ -78,7 +78,7 @@ class PawButton extends StatelessWidget {
     super.key,
     required this.label,
     this.onTap,
-    this.color = AppColors.pink,
+    this.color, // null = 当前调色板主粉色（运行时解析，支持深色模式）
     this.textColor = Colors.white,
     this.icon,
     this.expanded = true,
@@ -86,18 +86,21 @@ class PawButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveColor = color ?? AppColors.pink;
     final btn = AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
-        color: onTap == null ? AppColors.textSub.withValues(alpha: 0.4) : color,
+        color: onTap == null
+            ? AppColors.textSub.withValues(alpha: 0.4)
+            : effectiveColor,
         borderRadius: BorderRadius.circular(26),
         boxShadow: onTap == null
             ? null
             : [
                 BoxShadow(
-                  color: color.withValues(alpha: 0.4),
+                  color: effectiveColor.withValues(alpha: 0.4),
                   blurRadius: 12,
                   offset: const Offset(0, 5),
                 ),
@@ -370,7 +373,7 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textMain,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -381,7 +384,7 @@ class EmptyState extends StatelessWidget {
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSub, fontSize: 13),
+                style: TextStyle(color: AppColors.textSub, fontSize: 13),
               ),
             ],
           ],
@@ -414,7 +417,7 @@ class SectionTitle extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
               color: AppColors.textMain,
@@ -449,9 +452,9 @@ Future<T?> showCuteSheet<T>({
           maxHeight: MediaQuery.of(ctx).size.height * 0.9,
         ),
         child: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.card,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
