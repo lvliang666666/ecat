@@ -1,6 +1,7 @@
 // eCAT · 养猫 Agent 对话页
-// 可爱风气泡流 + SSE 流式打字机效果 + API 设置弹窗 + 长期记忆管理。
-// 上下文：每次对话自动带上当前猫咪档案/今日喂食/健康提醒 + 长期记忆。
+// 可爱风气泡流 + SSE 流式打字机效果 + 多 API 管理（手动切换）+ 长期记忆管理。
+// 上下文：每只猫独立聊天会话（互不串），每次对话自动带上
+// 当前猫咪档案/今日喂食/健康提醒 + 全局长期记忆。
 library;
 
 import 'package:flutter/material.dart';
@@ -56,10 +57,12 @@ class _AgentPageState extends State<AgentPage> {
 
     final agentStore = context.read<AgentStore>();
     final catStore = context.read<CatStore>();
-    if (!agentStore.configured) {
+    final api = agentStore.activeApi;
+    if (api == null) {
       await _openSettings();
       return;
     }
+    final catId = catStore.currentCat?.id ?? '';
 
     final userMsg = AgentMessage(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
@@ -70,9 +73,9 @@ class _AgentPageState extends State<AgentPage> {
     final replyId = '${DateTime.now().microsecondsSinceEpoch}r';
     _inputCtrl.clear();
     setState(() => _sending = true);
-    await agentStore.addMessage(userMsg);
+    await agentStore.addMessage(catId, userMsg);
     // 占位 assistant 消息（流式填充）
-    await agentStore.addMessage(AgentMessage(
+    await agentStore.addMessage(catId, AgentMessage(
       id: replyId,
       role: 'assistant',
       content: '',
@@ -84,22 +87,23 @@ class _AgentPageState extends State<AgentPage> {
       // 流式累积：每个增量片段实时刷进占位消息（打字机效果）
       final buf = StringBuffer();
       await AgentService.chatStream(
+        api: api,
         agentStore: agentStore,
         catStore: catStore,
         userText: text,
         onDelta: (delta) {
           buf.write(delta);
-          agentStore.updateLastMessage(buf.toString());
+          agentStore.updateLastMessage(catId, buf.toString());
           _scrollToBottom();
         },
       );
-      await agentStore.persistMessages();
+      await agentStore.persistMessages(catId);
 
       // 记忆提取（后台轻量调用，不阻塞 UI）
       AgentService.extractMemories(
-        agentStore: agentStore,
+        api: api,
         userText: text,
-        assistantReply: agentStore.messages.last.content,
+        assistantReply: buf.toString(),
       ).then((facts) {
         for (final f in facts) {
           agentStore.addMemory(f);
@@ -108,21 +112,22 @@ class _AgentPageState extends State<AgentPage> {
     } catch (e) {
       // 失败：占位消息改为错误提示
       await agentStore.updateLastMessage(
+        catId,
         '喵…我这边出了点问题：\n${e.toString().replaceFirst('Exception: ', '')}',
       );
-      await agentStore.persistMessages();
+      await agentStore.persistMessages(catId);
     } finally {
       if (mounted) setState(() => _sending = false);
       _scrollToBottom();
     }
   }
 
-  /// API 设置弹窗（首次进入未配置时自动弹出）
+  /// API 管理弹窗（首次进入未配置时自动弹出）
   Future<void> _openSettings() async {
     await showCuteSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => const _AgentSettingsSheet(),
+      builder: (_) => const _ApiListSheet(),
     );
   }
 
@@ -140,24 +145,56 @@ class _AgentPageState extends State<AgentPage> {
     final agentStore = context.watch<AgentStore>();
     final catStore = context.watch<CatStore>();
     final cat = catStore.currentCat;
+    final catId = cat?.id ?? '';
+    final messages = agentStore.messagesOf(catId);
+    final api = agentStore.activeApi;
 
     return Scaffold(
       backgroundColor: AppColors.cream,
       appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🐾', style: TextStyle(fontSize: 20)),
-            const SizedBox(width: 6),
-            Text(
-              '养猫助手',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textMain,
+        title: GestureDetector(
+          onTap: _openSettings,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🐾', style: TextStyle(fontSize: 20)),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  cat == null ? '养猫助手' : '${cat.name}的助手',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textMain,
+                  ),
+                ),
               ),
-            ),
-          ],
+              // 当前 API 小徽章：点击进管理
+              if (api != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.pinkLight,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    api.name,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.pinkDeep,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(width: 2),
+              Icon(Icons.expand_more_rounded,
+                  size: 16, color: AppColors.textSub),
+            ],
+          ),
         ),
         actions: [
           IconButton(
@@ -167,26 +204,26 @@ class _AgentPageState extends State<AgentPage> {
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined, size: 20),
-            tooltip: 'API 设置',
+            tooltip: 'API 管理',
             onPressed: _openSettings,
           ),
           const SizedBox(width: 4),
         ],
       ),
-      body: !agentStore.configured
+      body: api == null
           ? _NotConfigured(onOpenSettings: _openSettings)
           : Column(
               children: [
-                // 会话区
+                // 会话区（当前猫的独立会话）
                 Expanded(
-                  child: agentStore.messages.isEmpty
+                  child: messages.isEmpty
                       ? _Welcome(catName: cat?.name)
                       : ListView.builder(
                           controller: _scrollCtrl,
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                          itemCount: agentStore.messages.length,
+                          itemCount: messages.length,
                           itemBuilder: (context, i) => _Bubble(
-                            msg: agentStore.messages[i],
+                            msg: messages[i],
                           ),
                         ),
                 ),
@@ -227,7 +264,7 @@ class _NotConfigured extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '填入你的 API 就能开始聊，\n支持 OpenAI / DeepSeek / Kimi 等主流服务',
+              '可保存多个 API 随时切换，\n支持 OpenAI / DeepSeek / Kimi 等主流服务',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppColors.textSub, height: 1.5),
             ),
@@ -422,38 +459,207 @@ class _SendButton extends StatelessWidget {
   }
 }
 
-// ==================== API 设置弹窗 ====================
+// ==================== API 管理弹窗（列表 + 编辑） ====================
 
-class _AgentSettingsSheet extends StatefulWidget {
-  const _AgentSettingsSheet();
+/// API 列表：点条目切换生效，✏️ 编辑，长按删除，底部「新增」
+class _ApiListSheet extends StatelessWidget {
+  const _ApiListSheet();
 
   @override
-  State<_AgentSettingsSheet> createState() => _AgentSettingsSheetState();
+  Widget build(BuildContext context) {
+    final store = context.watch<AgentStore>();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'API 管理 🤖',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textMain,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '可保存多个服务，点条目切换当前使用；兼容 OpenAI 格式'
+            '（OpenAI / DeepSeek / Kimi / 智谱 / 私有化部署…）',
+            style: TextStyle(fontSize: 12, color: AppColors.textSub, height: 1.5),
+          ),
+          const SizedBox(height: 14),
+          if (store.apis.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Text(
+                  '还没有 API，先加一个吧 🐾',
+                  style: TextStyle(fontSize: 13, color: AppColors.textSub),
+                ),
+              ),
+            )
+          else
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: store.apis.length,
+                itemBuilder: (context, i) {
+                  final api = store.apis[i];
+                  final active = api.id == store.activeApiId;
+                  return CuteTap(
+                    onTap: () async {
+                      await store.setActiveApi(api.id);
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+                      showCuteToast(context, '已切换到「${api.name}」🐾');
+                    },
+                    onLongPress: () => _confirmDelete(context, store, api),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: active
+                            ? AppColors.pinkLight.withValues(alpha: 0.7)
+                            : AppColors.cream,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: active ? AppColors.pink : Colors.transparent,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(
+                            active ? '✅' : '⚪',
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  api.name,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textMain,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${api.model} · ${_hostOf(api.baseUrl)}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSub,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          CuteTap(
+                            onTap: () => _openEditor(context, store, api: api),
+                            child: Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: Icon(Icons.edit_rounded,
+                                  size: 18, color: AppColors.textSub),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: 6),
+          PawButton(
+            label: '新增 API 🐾',
+            icon: Icons.add_rounded,
+            onTap: () => _openEditor(context, store),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openEditor(BuildContext context, AgentStore store,
+      {AgentApiConfig? api}) {
+    showCuteSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _ApiEditorSheet(existing: api),
+    );
+  }
+
+  Future<void> _confirmDelete(
+      BuildContext context, AgentStore store, AgentApiConfig api) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除这个 API？'),
+        content: Text('「${api.name}」将被移除，不影响聊天记录。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await store.removeApi(api.id);
+  }
+
+  static String _hostOf(String baseUrl) {
+    try {
+      return Uri.parse(baseUrl).host;
+    } catch (_) {
+      return baseUrl;
+    }
+  }
 }
 
-class _AgentSettingsSheetState extends State<_AgentSettingsSheet> {
-  late final _urlCtrl = TextEditingController();
-  late final _keyCtrl = TextEditingController();
-  late final _modelCtrl = TextEditingController();
+/// API 编辑弹窗（新增 / 编辑两用）
+class _ApiEditorSheet extends StatefulWidget {
+  final AgentApiConfig? existing;
+  const _ApiEditorSheet({this.existing});
+
+  @override
+  State<_ApiEditorSheet> createState() => _ApiEditorSheetState();
+}
+
+class _ApiEditorSheetState extends State<_ApiEditorSheet> {
+  late final _nameCtrl = TextEditingController(text: widget.existing?.name);
+  late final _urlCtrl = TextEditingController(text: widget.existing?.baseUrl);
+  late final _keyCtrl = TextEditingController(text: widget.existing?.apiKey);
+  late final _modelCtrl = TextEditingController(text: widget.existing?.model);
   bool _testing = false;
   String? _result; // null = 未测，其他 = 结果文案
 
   @override
-  void initState() {
-    super.initState();
-    final store = context.read<AgentStore>();
-    _urlCtrl.text = store.baseUrl;
-    _keyCtrl.text = store.apiKey;
-    _modelCtrl.text = store.model;
-  }
-
-  @override
   void dispose() {
+    _nameCtrl.dispose();
     _urlCtrl.dispose();
     _keyCtrl.dispose();
     _modelCtrl.dispose();
     super.dispose();
   }
+
+  AgentApiConfig _buildConfig() => AgentApiConfig(
+        id: widget.existing?.id ??
+            DateTime.now().microsecondsSinceEpoch.toString(),
+        name: _nameCtrl.text.trim(),
+        baseUrl: _urlCtrl.text.trim().replaceAll(RegExp(r'/+$'), ''),
+        apiKey: _keyCtrl.text.trim(),
+        model: _modelCtrl.text.trim(),
+      );
 
   Future<void> _test() async {
     setState(() {
@@ -461,13 +667,7 @@ class _AgentSettingsSheetState extends State<_AgentSettingsSheet> {
       _result = null;
     });
     try {
-      final temp = AgentStore();
-      await temp.saveConfig(
-        baseUrl: _urlCtrl.text,
-        apiKey: _keyCtrl.text,
-        model: _modelCtrl.text,
-      );
-      final msg = await AgentService.testConnection(temp);
+      final msg = await AgentService.testConnection(_buildConfig());
       if (!mounted) return;
       setState(() => _result = msg);
     } catch (e) {
@@ -479,17 +679,20 @@ class _AgentSettingsSheetState extends State<_AgentSettingsSheet> {
   }
 
   Future<void> _save() async {
-    if (_urlCtrl.text.trim().isEmpty ||
+    if (_nameCtrl.text.trim().isEmpty ||
+        _urlCtrl.text.trim().isEmpty ||
         _keyCtrl.text.trim().isEmpty ||
         _modelCtrl.text.trim().isEmpty) {
-      showCuteToast(context, '三项都要填哦');
+      showCuteToast(context, '四项都要填哦');
       return;
     }
-    await context.read<AgentStore>().saveConfig(
-          baseUrl: _urlCtrl.text,
-          apiKey: _keyCtrl.text,
-          model: _modelCtrl.text,
-        );
+    final store = context.read<AgentStore>();
+    final config = _buildConfig();
+    if (widget.existing == null) {
+      await store.addApi(config); // 新增自动设为生效
+    } else {
+      await store.updateApi(config);
+    }
     if (!mounted) return;
     Navigator.pop(context);
     showCuteToast(context, 'API 已保存，开始聊天吧 🐾');
@@ -506,7 +709,7 @@ class _AgentSettingsSheetState extends State<_AgentSettingsSheet> {
           children: [
             Center(
               child: Text(
-                '接入你的 AI 🤖',
+                widget.existing == null ? '新增 API 🤖' : '编辑 API ✏️',
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
@@ -514,13 +717,14 @@ class _AgentSettingsSheetState extends State<_AgentSettingsSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              '兼容 OpenAI 格式的服务都可以（OpenAI / DeepSeek / Kimi / 智谱 / 私有化部署…）',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: AppColors.textSub, height: 1.5),
-            ),
             const SizedBox(height: 16),
+            TextField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                hintText: '名称，如 公司 API / DeepSeek',
+              ),
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _urlCtrl,
               decoration: const InputDecoration(
@@ -617,7 +821,7 @@ class _MemorySheet extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '聊天中提到的重要事实会自动记在这里，每次对话都会带上。点条目可删除。',
+            '聊天中提到的重要事实会自动记在这里（所有猫共享），每次对话都会带上。长按条目删除。',
             style: TextStyle(fontSize: 12, color: AppColors.textSub, height: 1.5),
           ),
           const SizedBox(height: 14),

@@ -2,8 +2,8 @@
 // OpenAI 兼容协议（/v1/chat/completions），SSE 流式输出（打字机效果）。
 // 上下文注入：
 // - 系统提示词：养猫专家人设 + App 数据快照（当前猫档案/今日喂食/健康提醒）
-// - 长期记忆：跨会话沉淀的养猫事实，注入 system
-// - 近期对话：最近 N 条消息保持连贯
+// - 长期记忆：跨会话沉淀的养猫事实（全局共享），注入 system
+// - 近期对话：当前猫的独立会话历史（每猫不串）
 // 记忆提取：每轮对话后让模型判断是否值得记住（独立轻量调用，非流式）。
 library;
 
@@ -84,18 +84,19 @@ class AgentService {
   /// 流式对话：逐段回调增量文本（SSE data: {...} 解析）。
   /// 返回完整回复文本；失败抛异常由调用方提示。
   static Future<String> chatStream({
+    required AgentApiConfig api,
     required AgentStore agentStore,
     required CatStore catStore,
     required String userText,
     required void Function(String delta) onDelta,
   }) async {
-    final url = Uri.parse('${agentStore.baseUrl}/chat/completions');
+    final url = Uri.parse('${api.baseUrl}/chat/completions');
     final history = agentStore.messages
         .map((m) => {'role': m.role, 'content': m.content})
         .toList();
 
     final body = jsonEncode({
-      'model': agentStore.model,
+      'model': api.model,
       'messages': [
         {'role': 'system', 'content': buildSystemPrompt(catStore, agentStore)},
         ...history,
@@ -108,7 +109,7 @@ class AgentService {
     try {
       final request = http.Request('POST', url)
         ..headers['Content-Type'] = 'application/json'
-        ..headers['Authorization'] = 'Bearer ${agentStore.apiKey}'
+        ..headers['Authorization'] = 'Bearer ${api.apiKey}'
         ..body = body;
 
       final response =
@@ -152,14 +153,14 @@ class AgentService {
   /// 记忆提取：让模型从这轮对话中判断是否值得长期记住。
   /// 返回要记住的事实列表（可能为空）；失败静默返回空（不打断对话）。
   static Future<List<String>> extractMemories({
-    required AgentStore agentStore,
+    required AgentApiConfig api,
     required String userText,
     required String assistantReply,
   }) async {
     try {
-      final url = Uri.parse('${agentStore.baseUrl}/chat/completions');
+      final url = Uri.parse('${api.baseUrl}/chat/completions');
       final body = jsonEncode({
-        'model': agentStore.model,
+        'model': api.model,
         'messages': [
           {
             'role': 'system',
@@ -182,7 +183,7 @@ class AgentService {
             url,
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'Bearer ${agentStore.apiKey}',
+              'Authorization': 'Bearer ${api.apiKey}',
             },
             body: body,
           )
@@ -208,10 +209,10 @@ class AgentService {
   }
 
   /// 测试 API 连通性（设置页保存前验证）
-  static Future<String> testConnection(AgentStore agentStore) async {
-    final url = Uri.parse('${agentStore.baseUrl}/chat/completions');
+  static Future<String> testConnection(AgentApiConfig api) async {
+    final url = Uri.parse('${api.baseUrl}/chat/completions');
     final body = jsonEncode({
-      'model': agentStore.model,
+      'model': api.model,
       'messages': [
         {'role': 'user', 'content': '喵'}
       ],
@@ -222,7 +223,7 @@ class AgentService {
           url,
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${agentStore.apiKey}',
+            'Authorization': 'Bearer ${api.apiKey}',
           },
           body: body,
         )
