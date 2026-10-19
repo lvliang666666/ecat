@@ -84,5 +84,36 @@ void main() {
       await s.load();
       expect(s.themeMode, ThemeMode.system);
     });
+
+    test('喂食提醒默认关闭 09:00，切换并持久化', () async {
+      SharedPreferences.setMockInitialValues({});
+      final s = SettingsStore();
+      await s.load();
+
+      expect(s.feedReminderEnabled, isFalse);
+      expect(s.feedReminderMinutes, 9 * 60);
+
+      await s.setFeedReminderEnabled(true);
+      await s.setFeedReminderMinutes(8 * 60 + 30);
+      expect(s.feedReminderEnabled, isTrue);
+      expect(s.feedReminderMinutes, 8 * 60 + 30);
+
+      final s2 = SettingsStore();
+      await s2.load();
+      expect(s2.feedReminderEnabled, isTrue);
+      expect(s2.feedReminderMinutes, 8 * 60 + 30);
+    });
+
+    test('喂食提醒时间越界被钳制到 0~1439', () async {
+      SharedPreferences.setMockInitialValues({});
+      final s = SettingsStore();
+      await s.load();
+
+      await s.setFeedReminderMinutes(-5);
+      expect(s.feedReminderMinutes, 0);
+
+      await s.setFeedReminderMinutes(2000);
+      expect(s.feedReminderMinutes, 23 * 60 + 59);
+    });
   });
 }

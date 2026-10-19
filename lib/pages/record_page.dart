@@ -10,6 +10,7 @@ import '../models/cat.dart';
 import '../store/cat_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import 'quick_record.dart';
 
 /// 筛选类型：0 全部 / 1 喂食 / 2 体重 / 3 健康
 class _Filter {
@@ -87,6 +88,75 @@ class _RecordPageState extends State<RecordPage> {
     return isToday
         ? DateFormat('HH:mm').format(t)
         : DateFormat('MM/dd HH:mm').format(t);
+  }
+
+  /// 长按记录：编辑 / 删除 二选一菜单
+  Future<void> _showEntryActions(_Entry entry) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.pinkLight,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: Icon(Icons.edit_rounded, color: AppColors.pinkDeep),
+              title: Text(
+                '编辑',
+                style: TextStyle(
+                  color: AppColors.textMain,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () => Navigator.pop(ctx, 'edit'),
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_outline_rounded,
+                  color: AppColors.danger),
+              title: Text(
+                '删除',
+                style: TextStyle(
+                  color: AppColors.danger,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () => Navigator.pop(ctx, 'delete'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    if (action == 'edit') {
+      await _editEntry(entry);
+    } else if (action == 'delete') {
+      await _confirmDelete(entry);
+    }
+  }
+
+  /// 按类型打开对应编辑弹窗
+  Future<void> _editEntry(_Entry entry) async {
+    if (entry.feed != null) {
+      await editFeedRecord(context, entry.feed!);
+    } else if (entry.weight != null) {
+      await editWeightRecord(context, entry.weight!);
+    } else if (entry.health != null) {
+      await editHealthRecord(context, entry.health!);
+    }
   }
 
   /// 长按删除确认弹窗
@@ -230,7 +300,7 @@ class _RecordPageState extends State<RecordPage> {
                       itemBuilder: (context, i) {
                         final e = entries[i];
                         return GestureDetector(
-                          onLongPress: () => _confirmDelete(e),
+                          onLongPress: () => _showEntryActions(e),
                           child: CuteCard(
                             child: _buildRow(e),
                           ),

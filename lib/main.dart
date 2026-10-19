@@ -37,6 +37,17 @@ void main() async {
       ReminderService.resync(store.cats, store.allHealths);
     });
   }
+  // 每日喂食提醒：启动排定 + 随猫咪/设置变化重排
+  Future<void> syncFeedReminder() async {
+    await ReminderService.resyncFeedReminder(
+      enabled: settings.notificationsEnabled && settings.feedReminderEnabled,
+      minutesOfDay: settings.feedReminderMinutes,
+      cats: store.cats,
+    );
+  }
+  await syncFeedReminder();
+  store.addListener(syncFeedReminder);
+  settings.addListener(syncFeedReminder);
 
   runApp(EcatApp(store: store, settings: settings));
 }

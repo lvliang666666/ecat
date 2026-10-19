@@ -1,5 +1,6 @@
 // 快捷记录入口：喂食 / 体重 / 健康 三合一弹窗
 // 供首页 FAB 与记录页共用；所有写入都挂载到当前猫咪（数据隔离）。
+// 编辑模式：传入待编辑的 log（editFeed/editWeight/editHealth）即预填表单走更新。
 library;
 
 import 'package:flutter/material.dart';
@@ -26,9 +27,61 @@ Future<void> openQuickRecord(BuildContext context, {int initialTab = 0}) async {
   );
 }
 
+/// 编辑喂食记录（记录页长按进入）
+Future<void> editFeedRecord(BuildContext context, FeedLog log) async {
+  await showCuteSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => _QuickRecordSheet.editFeed(log),
+  );
+}
+
+/// 编辑体重记录
+Future<void> editWeightRecord(BuildContext context, WeightLog log) async {
+  await showCuteSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => _QuickRecordSheet.editWeight(log),
+  );
+}
+
+/// 编辑健康记录
+Future<void> editHealthRecord(BuildContext context, HealthLog log) async {
+  await showCuteSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => _QuickRecordSheet.editHealth(log),
+  );
+}
+
 class _QuickRecordSheet extends StatefulWidget {
   final int initialTab;
-  const _QuickRecordSheet({this.initialTab = 0});
+  final FeedLog? editFeed;
+  final WeightLog? editWeight;
+  final HealthLog? editHealth;
+
+  const _QuickRecordSheet({this.initialTab = 0})
+      : editFeed = null,
+        editWeight = null,
+        editHealth = null;
+
+  const _QuickRecordSheet.editFeed(FeedLog log)
+      : initialTab = 0,
+        editFeed = log,
+        editWeight = null,
+        editHealth = null;
+
+  const _QuickRecordSheet.editWeight(WeightLog log)
+      : initialTab = 1,
+        editFeed = null,
+        editWeight = log,
+        editHealth = null;
+
+  const _QuickRecordSheet.editHealth(HealthLog log)
+      : initialTab = 2,
+        editFeed = null,
+        editWeight = null,
+        editHealth = log;
 
   @override
   State<_QuickRecordSheet> createState() => _QuickRecordSheetState();
@@ -36,6 +89,8 @@ class _QuickRecordSheet extends StatefulWidget {
 
 class _QuickRecordSheetState extends State<_QuickRecordSheet> {
   late int _tab = widget.initialTab;
+  bool get _isEditing =>
+      widget.editFeed != null || widget.editWeight != null || widget.editHealth != null;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +108,9 @@ class _QuickRecordSheetState extends State<_QuickRecordSheet> {
               Text(cat.avatar, style: const TextStyle(fontSize: 22)),
               const SizedBox(width: 8),
               Text(
-                '给「${cat.name}」记一笔',
+                _isEditing
+                    ? '修改「${cat.name}」的记录'
+                    : '给「${cat.name}」记一笔',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -63,17 +120,20 @@ class _QuickRecordSheetState extends State<_QuickRecordSheet> {
             ],
           ),
           const SizedBox(height: 16),
-          ChipChoice<int>(
-            values: const [0, 1, 2],
-            selected: _tab,
-            onSelect: (v) => setState(() => _tab = v),
-            labels: const {0: '喂食', 1: '体重', 2: '健康'},
-            emojis: const {0: '🍚', 1: '⚖️', 2: '💊'},
-          ),
-          const SizedBox(height: 20),
-          if (_tab == 0) _FeedForm(cat: cat),
-          if (_tab == 1) _WeightForm(cat: cat),
-          if (_tab == 2) _HealthForm(cat: cat),
+          // 编辑模式下锁定类型 Tab（改喂食记录不会变成改体重）
+          if (!_isEditing) ...[
+            ChipChoice<int>(
+              values: const [0, 1, 2],
+              selected: _tab,
+              onSelect: (v) => setState(() => _tab = v),
+              labels: const {0: '喂食', 1: '体重', 2: '健康'},
+              emojis: const {0: '🍚', 1: '⚖️', 2: '💊'},
+            ),
+            const SizedBox(height: 20),
+          ],
+          if (_tab == 0) _FeedForm(cat: cat, editing: widget.editFeed),
+          if (_tab == 1) _WeightForm(cat: cat, editing: widget.editWeight),
+          if (_tab == 2) _HealthForm(cat: cat, editing: widget.editHealth),
           const SizedBox(height: 12),
         ],
       ),
@@ -84,20 +144,36 @@ class _QuickRecordSheetState extends State<_QuickRecordSheet> {
 // ---------------- 喂食表单 ----------------
 class _FeedForm extends StatefulWidget {
   final Cat cat;
-  const _FeedForm({required this.cat});
+  final FeedLog? editing; // 非 null = 编辑模式
+  const _FeedForm({required this.cat, this.editing});
 
   @override
   State<_FeedForm> createState() => _FeedFormState();
 }
 
 class _FeedFormState extends State<_FeedForm> {
-  String _type = FeedLog.types.first;
-  final _amountCtrl = TextEditingController();
-  final _noteCtrl = TextEditingController();
+  late String _type = widget.editing?.type ?? FeedLog.types.first;
+  late final _amountCtrl = TextEditingController(
+    text: widget.editing == null
+        ? ''
+        : _fmtAmount(widget.editing!.amount),
+  );
+  late final _noteCtrl =
+      TextEditingController(text: widget.editing?.note ?? '');
 
   static const _typeEmoji = {
     '干粮': '🍖', '湿粮罐头': '🥫', '冻干': '🐟', '零食': '🍪', '饮水': '💧',
   };
+
+  static String _fmtAmount(double v) =>
+      v % 1 == 0 ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+
+  @override
+  void dispose() {
+    _amountCtrl.dispose();
+    _noteCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +221,7 @@ class _FeedFormState extends State<_FeedForm> {
         ),
         const SizedBox(height: 20),
         PawButton(
-          label: '记好啦 🐾',
+          label: widget.editing == null ? '记好啦 🐾' : '保存修改 🐾',
           icon: Icons.check_rounded,
           onTap: _submit,
         ),
@@ -160,6 +236,22 @@ class _FeedFormState extends State<_FeedForm> {
       return;
     }
     final store = context.read<CatStore>();
+    final editing = widget.editing;
+    if (editing != null) {
+      store.updateFeed(FeedLog(
+        id: editing.id,
+        catId: editing.catId,
+        time: editing.time, // 编辑不改时间（记录页展示的是原时间）
+        type: _type,
+        amount: amount,
+        note: _noteCtrl.text.trim(),
+      ));
+      if (mounted) {
+        Navigator.pop(context);
+        showCuteToast(context, '记录已更新 ✏️');
+      }
+      return;
+    }
     store.addFeed(FeedLog(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       catId: widget.cat.id,
@@ -179,23 +271,51 @@ class _FeedFormState extends State<_FeedForm> {
 // ---------------- 体重表单 ----------------
 class _WeightForm extends StatefulWidget {
   final Cat cat;
-  const _WeightForm({required this.cat});
+  final WeightLog? editing;
+  const _WeightForm({required this.cat, this.editing});
 
   @override
   State<_WeightForm> createState() => _WeightFormState();
 }
 
 class _WeightFormState extends State<_WeightForm> {
-  final _weightCtrl = TextEditingController();
+  late final _weightCtrl = TextEditingController(
+    text: widget.editing?.weight.toStringAsFixed(1) ?? '',
+  );
+  late DateTime _date = widget.editing?.date ?? DateTime.now();
+
+  @override
+  void dispose() {
+    _weightCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime.now().subtract(const Duration(days: 365 * 3)),
+      lastDate: DateTime.now(),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(context)
+              .colorScheme
+              .copyWith(primary: AppColors.pinkDeep),
+        ),
+        child: child!,
+      ),
+    );
+    if (d != null) setState(() => _date = d);
+  }
 
   @override
   Widget build(BuildContext context) {
     final store = context.watch<CatStore>();
-    final latest = store.latestWeight;
+    final latest = widget.editing == null ? store.latestWeight : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (latest != null)
+        if (latest != null) ...[
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -207,7 +327,8 @@ class _WeightFormState extends State<_WeightForm> {
               style: TextStyle(color: AppColors.mintDeep),
             ),
           ),
-        const SizedBox(height: 16),
+          const SizedBox(height: 16),
+        ],
         TextField(
           controller: _weightCtrl,
           autofocus: true,
@@ -218,9 +339,34 @@ class _WeightFormState extends State<_WeightForm> {
           ],
           decoration: const InputDecoration(hintText: '今天体重 (kg)，如 4.2'),
         ),
+        // 编辑模式：可改称重日期
+        if (widget.editing != null) ...[
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: _pickDate,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.cream,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  const Text('📅', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 10),
+                  Text(
+                    '称重日期：${DateFormat('yyyy年MM月dd日').format(_date)}',
+                    style: TextStyle(color: AppColors.textMain),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 20),
         PawButton(
-          label: '记好啦 🐾',
+          label: widget.editing == null ? '记好啦 🐾' : '保存修改 🐾',
           icon: Icons.check_rounded,
           onTap: _submit,
         ),
@@ -235,6 +381,20 @@ class _WeightFormState extends State<_WeightForm> {
       return;
     }
     final store = context.read<CatStore>();
+    final editing = widget.editing;
+    if (editing != null) {
+      store.updateWeight(WeightLog(
+        id: editing.id,
+        catId: editing.catId,
+        date: _date,
+        weight: w,
+      ));
+      if (mounted) {
+        Navigator.pop(context);
+        showCuteToast(context, '体重记录已更新 ✏️');
+      }
+      return;
+    }
     store.addWeight(WeightLog(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       catId: widget.cat.id,
@@ -252,17 +412,28 @@ class _WeightFormState extends State<_WeightForm> {
 // ---------------- 健康表单 ----------------
 class _HealthForm extends StatefulWidget {
   final Cat cat;
-  const _HealthForm({required this.cat});
+  final HealthLog? editing;
+  const _HealthForm({required this.cat, this.editing});
 
   @override
   State<_HealthForm> createState() => _HealthFormState();
 }
 
 class _HealthFormState extends State<_HealthForm> {
-  String _category = 'vaccine';
-  final _titleCtrl = TextEditingController();
-  final _noteCtrl = TextEditingController();
-  DateTime? _nextDue;
+  late String _category = widget.editing?.category ?? 'vaccine';
+  late final _titleCtrl =
+      TextEditingController(text: widget.editing?.title ?? '');
+  late final _noteCtrl =
+      TextEditingController(text: widget.editing?.note ?? '');
+  late DateTime? _nextDue = widget.editing?.nextDue;
+  late DateTime _logDate = widget.editing?.date ?? DateTime.now();
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _noteCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -290,6 +461,31 @@ class _HealthFormState extends State<_HealthForm> {
           decoration: const InputDecoration(hintText: '备注（可选）'),
         ),
         const SizedBox(height: 12),
+        // 记录日期（编辑模式可改）
+        if (widget.editing != null) ...[
+          GestureDetector(
+            onTap: _pickLogDate,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.cream,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  const Text('📅', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 10),
+                  Text(
+                    '记录日期：${DateFormat('yyyy年MM月dd日').format(_logDate)}',
+                    style: TextStyle(color: AppColors.textMain),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         // 下次提醒日期
         GestureDetector(
           onTap: _pickNextDue,
@@ -326,7 +522,7 @@ class _HealthFormState extends State<_HealthForm> {
         ),
         const SizedBox(height: 20),
         PawButton(
-          label: '记好啦 🐾',
+          label: widget.editing == null ? '记好啦 🐾' : '保存修改 🐾',
           icon: Icons.check_rounded,
           onTap: _submit,
         ),
@@ -334,10 +530,29 @@ class _HealthFormState extends State<_HealthForm> {
     );
   }
 
+  Future<void> _pickLogDate() async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _logDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 365 * 3)),
+      lastDate: DateTime.now(),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(context)
+              .colorScheme
+              .copyWith(primary: AppColors.pinkDeep),
+        ),
+        child: child!,
+      ),
+    );
+    if (d != null) setState(() => _logDate = d);
+  }
+
   Future<void> _pickNextDue() async {
     final d = await showDatePicker(
       context: context,
-      initialDate: _nextDue ?? DateTime.now().add(const Duration(days: 30)),
+      initialDate:
+          _nextDue ?? DateTime.now().add(const Duration(days: 30)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
       builder: (context, child) => Theme(
@@ -359,6 +574,23 @@ class _HealthFormState extends State<_HealthForm> {
       return;
     }
     final store = context.read<CatStore>();
+    final editing = widget.editing;
+    if (editing != null) {
+      store.updateHealth(HealthLog(
+        id: editing.id,
+        catId: editing.catId,
+        date: _logDate,
+        category: _category,
+        title: title,
+        note: _noteCtrl.text.trim(),
+        nextDue: _nextDue,
+      ));
+      if (mounted) {
+        Navigator.pop(context);
+        showCuteToast(context, '健康记录已更新 ✏️');
+      }
+      return;
+    }
     store.addHealth(HealthLog(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       catId: widget.cat.id,

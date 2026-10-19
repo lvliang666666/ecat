@@ -16,6 +16,16 @@ Future<void> showSettingsSheet(BuildContext context) {
   return showCuteSheet(context: context, builder: (_) => const _SettingsSheet());
 }
 
+/// 分钟数 → 「09:00」文案
+String _minutesLabel(int minutes) {
+  final h = (minutes ~/ 60).toString().padLeft(2, '0');
+  final m = (minutes % 60).toString().padLeft(2, '0');
+  return '提醒时间：$h:$m';
+}
+
+TimeOfDay _minutesToTime(int minutes) =>
+    TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60);
+
 class _SettingsSheet extends StatelessWidget {
   const _SettingsSheet();
 
@@ -79,19 +89,97 @@ class _SettingsSheet extends StatelessWidget {
             },
           ),
         ),
-        // 测试通知入口：长按上面卡片触发；这里放一行小提示
+        // 测试通知入口：点这行小字立即发一条（验证通知链路真实可用）
         GestureDetector(
-          onLongPress: () async {
+          behavior: HitTestBehavior.opaque,
+          onTap: () async {
             await ReminderService.sendTestNotification();
             if (!context.mounted) return;
             showCuteToast(context, '测试通知已发送，看看系统通知栏 🐾');
           },
           child: Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              '收不到通知？长按上面的开关卡片发一条测试通知试试',
-              style: TextStyle(fontSize: 11, color: AppColors.textSub),
+            padding: const EdgeInsets.only(top: 8, bottom: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '🔔 点此发送测试通知',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.pinkDeep,
+                  ),
+                ),
+              ],
             ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // 每日喂食提醒（总开关关闭时置灰不可用）
+        CuteCard(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: Column(
+            children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  '每日喂食提醒',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: settings.notificationsEnabled
+                        ? AppColors.textMain
+                        : AppColors.textSub,
+                  ),
+                ),
+                subtitle: Text(
+                  '每天固定时间提醒我喂饭',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSub),
+                ),
+                activeThumbColor: AppColors.pinkDeep,
+                value: settings.feedReminderEnabled,
+                onChanged: settings.notificationsEnabled
+                    ? (v) async {
+                        await context
+                            .read<SettingsStore>()
+                            .setFeedReminderEnabled(v);
+                        if (v && context.mounted) {
+                          showCuteToast(context, '每天会准时喊你喂饭啦 🍚');
+                        }
+                      }
+                    : null,
+              ),
+              // 时间选择行（子开关开启时才可点）
+              if (settings.feedReminderEnabled &&
+                  settings.notificationsEnabled)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  leading: const Text('⏰', style: TextStyle(fontSize: 18)),
+                  title: Text(
+                    _minutesLabel(settings.feedReminderMinutes),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textMain,
+                    ),
+                  ),
+                  trailing: Icon(Icons.chevron_right_rounded,
+                      size: 20, color: AppColors.textSub),
+                  onTap: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: _minutesToTime(
+                          settings.feedReminderMinutes),
+                    );
+                    if (picked == null || !context.mounted) return;
+                    await context
+                        .read<SettingsStore>()
+                        .setFeedReminderMinutes(
+                            picked.hour * 60 + picked.minute);
+                  },
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
