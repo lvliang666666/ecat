@@ -39,7 +39,7 @@ class BackupPage extends StatelessWidget {
                   icon: Icons.arrow_back_ios_new_rounded,
                   onTap: () => Navigator.of(context).pop(),
                 ),
-                const Expanded(
+                Expanded(
                   child: Center(
                     child: Text(
                       '数据备份 🗂️',
@@ -61,7 +61,7 @@ class BackupPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     '当前数据',
                     style: TextStyle(
                       fontSize: 15,
@@ -89,7 +89,7 @@ class BackupPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
                       Text('📤', style: TextStyle(fontSize: 22)),
                       SizedBox(width: 10),
@@ -104,7 +104,7 @@ class BackupPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     '把全部数据保存为一个 JSON 文件，换设备、重装系统前先备份一份。',
                     style: TextStyle(fontSize: 13, color: AppColors.textSub, height: 1.5),
                   ),
@@ -124,7 +124,7 @@ class BackupPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
                       Text('📥', style: TextStyle(fontSize: 22)),
                       SizedBox(width: 10),
@@ -139,7 +139,7 @@ class BackupPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     '从备份文件恢复。注意：导入会覆盖当前的全部数据，操作前请先导出一份现在的数据。',
                     style: TextStyle(fontSize: 13, color: AppColors.textSub, height: 1.5),
                   ),
@@ -166,13 +166,13 @@ class BackupPage extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           num,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.bold,
             color: AppColors.textMain,
           ),
         ),
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSub)),
+        Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSub)),
       ],
     );
   }
@@ -186,7 +186,7 @@ class BackupPage extends StatelessWidget {
       child: Container(
         width: 40,
         height: 40,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.card,
           shape: BoxShape.circle,
         ),
@@ -231,11 +231,11 @@ class BackupPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('再想想', style: TextStyle(color: AppColors.textSub)),
+            child: Text('再想想', style: TextStyle(color: AppColors.textSub)),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('继续导入', style: TextStyle(color: AppColors.danger)),
+            child: Text('继续导入', style: TextStyle(color: AppColors.danger)),
           ),
         ],
       ),

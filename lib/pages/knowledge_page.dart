@@ -62,7 +62,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
             ),
             const SizedBox(height: 18),
             AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
+              duration: Duration(milliseconds: 200),
               child: KeyedSubtree(
                 key: ValueKey<String>(_tab),
                 child: _buildContent(),
@@ -82,7 +82,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
                 '养猫百科 📚',
                 style: TextStyle(
@@ -124,7 +124,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle(
+        SectionTitle(
           title: '绝对禁食',
           emoji: '🚫',
           trailing: _RiskBadge(text: '一口都不行！', color: AppColors.danger),
@@ -137,7 +137,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
           ),
         ),
         const SizedBox(height: 8),
-        const SectionTitle(
+        SectionTitle(
           title: '谨慎少量',
           emoji: '⚠️',
           trailing: _RiskBadge(text: '遵医嘱', color: AppColors.butterDeep),
@@ -150,7 +150,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
           ),
         ),
         const SizedBox(height: 8),
-        const SectionTitle(
+        SectionTitle(
           title: '安全放心',
           emoji: '✅',
           trailing: _RiskBadge(text: '放心喂', color: AppColors.mintDeep),
@@ -172,7 +172,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle(
+        SectionTitle(
           title: '免疫时间线',
           emoji: '💉',
           trailing: _RiskBadge(text: '按时接种', color: AppColors.pinkDeep),
@@ -213,7 +213,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
           ),
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
               color: AppColors.textMain,
@@ -224,7 +224,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
         Expanded(
           child: Text(
             desc,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               color: AppColors.textMain,
               height: 1.4,
@@ -241,7 +241,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle(
+        SectionTitle(
           title: '常见症状速查',
           emoji: '🩺',
           trailing: _RiskBadge(text: '对症观察', color: AppColors.skyDeep),
@@ -259,7 +259,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
               Expanded(
                 child: Text(
                   '以上仅供参考，猫咪异常持续请及时就医，就医时可出示 App 里的健康记录 🐾',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textMain,
                     height: 1.5,
@@ -288,7 +288,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
               Expanded(
                 child: Text(
                   s.symptom,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textMain,
@@ -300,7 +300,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
           const SizedBox(height: 8),
           Text.rich(
             TextSpan(
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textSub,
                 height: 1.4,
@@ -330,7 +330,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
                 Expanded(
                   child: Text(
                     s.action,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
                       color: AppColors.textMain,
                       height: 1.4,
@@ -363,7 +363,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
             children: [
               Row(
                 children: [
-                  const Text(
+                  Text(
                     '📋 备货进度',
                     style: TextStyle(
                       fontSize: 14,
@@ -390,13 +390,13 @@ class _KnowledgePageState extends State<KnowledgePage> {
                 child: LinearProgressIndicator(
                   value: done / total,
                   minHeight: 8,
-                  backgroundColor: Colors.white,
+                  backgroundColor: AppColors.card,
                   color: AppColors.pink,
                 ),
               ),
               if (done == total) ...[
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   '全部备齐，可以接猫咪回家啦 🎉',
                   style: TextStyle(
                     fontSize: 12,
@@ -468,7 +468,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
       height: 22,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: checked ? AppColors.pink : Colors.white,
+        color: checked ? AppColors.pink : AppColors.card,
         border: Border.all(
           color: checked ? AppColors.pinkDeep : AppColors.pinkLight,
           width: 2,
@@ -547,7 +547,7 @@ class _FoodCard extends StatelessWidget {
               children: [
                 Text(
                   item.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textMain,
@@ -556,7 +556,7 @@ class _FoodCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   item.reason,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textSub,
                     height: 1.4,
@@ -593,7 +593,7 @@ class _TimelineTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.pink,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: AppColors.card, width: 2),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.pink.withValues(alpha: 0.35),
@@ -638,7 +638,7 @@ class _TimelineTile extends StatelessWidget {
                         ),
                         child: Text(
                           item.age,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: AppColors.pinkDeep,
@@ -650,7 +650,7 @@ class _TimelineTile extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     item.content,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       color: AppColors.textMain,
                       height: 1.5,
