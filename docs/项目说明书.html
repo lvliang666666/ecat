@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eCAT 项目说明书（猫咪照护伴侣）</title>
+<style>
+  :root { --ink:#1c2333; --sub:#5a6478; --line:#e3e7ef; --bg:#f7f8fb; --card:#ffffff; --acc:#ec6a9c; --ok:#1a7f4e; --warn:#b3541e; }
+  * { box-sizing:border-box; }
+  body { font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; color:var(--ink); background:var(--bg); margin:0; line-height:1.75; }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 24px 80px; }
+  header.hero { background:linear-gradient(135deg,#9d2f5f,#ec6a9c); color:#fff; border-radius:14px; padding:36px 36px 28px; margin-bottom:28px; }
+  header.hero h1 { margin:0 0 8px; font-size:26px; }
+  header.hero p { margin:4px 0; opacity:.92; font-size:14px; }
+  .badge { display:inline-block; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); border-radius:999px; padding:2px 12px; font-size:12px; margin-right:8px; }
+  nav.toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 24px; margin-bottom:28px; }
+  nav.toc h2 { margin:0 0 10px; font-size:15px; color:var(--sub); }
+  nav.toc ol { margin:0; padding-left:22px; columns:2; column-gap:40px; }
+  nav.toc li { margin:3px 0; font-size:14px; }
+  nav.toc a { color:#be3d74; text-decoration:none; }
+  nav.toc a:hover { text-decoration:underline; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:26px 30px; margin-bottom:24px; }
+  section > h2 { margin:0 0 14px; font-size:20px; border-left:4px solid var(--acc); padding-left:12px; }
+  h3 { font-size:16px; margin:22px 0 8px; }
+  h4 { font-size:14px; margin:16px 0 6px; color:var(--sub); }
+  p, li { font-size:14px; }
+  table { width:100%; border-collapse:collapse; margin:10px 0 16px; font-size:13.5px; }
+  th, td { border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; }
+  th { background:#fdeef4; font-weight:600; white-space:nowrap; }
+  tr:nth-child(even) td { background:#fffbfd; }
+  code { font-family:Consolas,"Cascadia Code",monospace; background:#eef1f7; border-radius:4px; padding:1px 6px; font-size:13px; color:#c7254e; }
+  pre { background:#0f1726; color:#dce4f2; border-radius:8px; padding:14px 18px; overflow-x:auto; font-size:13px; line-height:1.6; }
+  pre code { background:none; color:inherit; padding:0; }
+  .tip { border-left:4px solid var(--ok); background:#f0f9f4; border-radius:0 8px 8px 0; padding:10px 16px; margin:12px 0; font-size:13.5px; }
+  .warn { border-left:4px solid var(--warn); background:#fdf5ef; border-radius:0 8px 8px 0; padding:10px 16px; margin:12px 0; font-size:13.5px; }
+  .steps { counter-reset:step; padding-left:0; list-style:none; }
+  .steps > li { counter-increment:step; position:relative; padding:10px 0 10px 46px; border-bottom:1px dashed var(--line); }
+  .steps > li:last-child { border-bottom:none; }
+  .steps > li::before { content:counter(step); position:absolute; left:0; top:10px; width:30px; height:30px; border-radius:50%; background:var(--acc); color:#fff; text-align:center; line-height:30px; font-weight:700; font-size:14px; }
+  footer { text-align:center; color:var(--sub); font-size:12.5px; margin-top:30px; }
+  @media (max-width:720px){ nav.toc ol{columns:1;} }
+  @media print { body{background:#fff;} section{border:none; padding:10px 0;} header.hero{border-radius:0;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>eCAT · Meow Butler 项目说明书</h1>
+  <p><span class="badge">v1.7.3</span><span class="badge">Flutter · Android + Windows</span><span class="badge">MIT 开源</span></p>
+  <p>奶油粉配色的本地优先猫咪照护 App——一只猫一份档案：喂养记录、体重曲线、疫苗提醒、AI 猫专家助手，全部按猫隔离。无账号、无云端、无遥测。</p>
+</header>
+
+<nav class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li><a href="#s1">项目是什么</a></li>
+    <li><a href="#s2">功能全景</a></li>
+    <li><a href="#s3">安装与上手</a></li>
+    <li><a href="#s4">从源码构建</a></li>
+    <li><a href="#s5">移植与数据迁移</a></li>
+    <li><a href="#s6">技术亮点</a></li>
+    <li><a href="#s7">FAQ</a></li>
+  </ol>
+</nav>
+
+<!-- ===================== 1 ===================== -->
+<section id="s1">
+  <h2>1. 项目是什么</h2>
+  <p>核心主张：<b>one cat, one profile（一猫一档）</b>——每条喂养记录、体重曲线、疫苗提醒甚至 AI 聊天上下文都按 catId 隔离，多猫家庭永不串档。所有数据存本机，无账号无云端无遥测。</p>
+  <table>
+    <tr><th>项</th><th>值</th></tr>
+    <tr><td>平台</td><td>Android 5.0+ / Windows 10+</td></tr>
+    <tr><td>技术栈</td><td>Flutter（Dart ≥ 3.12.2）</td></tr>
+    <tr><td>当前版本</td><td>v1.7.3（2026-10-19，待真机验收）</td></tr>
+    <tr><td>远程仓库</td><td><code>github.com/lvliang666666/ecat</code>（公开，MIT）</td></tr>
+    <tr><td>测试</td><td>39 用例保持绿色</td></tr>
+  </table>
+</section>
+
+<!-- ===================== 2 ===================== -->
+<section id="s2">
+  <h2>2. 功能全景</h2>
+  <table>
+    <tr><th>模块</th><th>能力</th></tr>
+    <tr><td>🐱 猫档案</td><td>名字/品种/生日/性别/绝育/毛色/emoji 或照片头像/目标体重/过敏原；猫龄自动计算</td></tr>
+    <tr><td>🍚 喂养</td><td>5 种食物类型 + 克数 + 备注；每猫个性化每日目标，首页进度条</td></tr>
+    <tr><td>⚖️ 体重</td><td>同日去重、0–30kg 固定轴、近 7 天趋势 + 目标虚线、全历史视图</td></tr>
+    <tr><td>🏥 健康</td><td>疫苗/驱虫/洗澡/就医/症状记录 + 下次到期日；倒计时配色（过期红/今天黄/将到绿）</td></tr>
+    <tr><td>⏰ 提醒</td><td>健康到期（当天 09:00）、每日喂养自定义时间、猫生日（提前 3 天 + 当天）；开机恢复 + 错过补发去重</td></tr>
+    <tr><td>🤖 AI 助手</td><td>OpenAI 兼容 SSE 流式；多套 API 配置一键切换；按猫隔离上下文；长期记忆（自动提取、全局共享、可管理）</td></tr>
+    <tr><td>💾 数据</td><td>一键 JSON 导出/导入——换手机全量迁移</td></tr>
+    <tr><td>📚 知识库</td><td>17 项食品安全红黄绿清单、疫苗时间表、6 项自检指南、10 项新猫清单带进度</td></tr>
+  </table>
+</section>
+
+<!-- ===================== 3 ===================== -->
+<section id="s3">
+  <h2>3. 安装与上手</h2>
+  <ol class="steps">
+    <li>GitHub Releases 下载：Android 装 APK；Windows 解压 zip 运行 ecat.exe。</li>
+    <li>首次启动 3 页引导创建第一只猫档案。</li>
+    <li>日常：三合一快捷录入（喂食/体重/健康）一键常用量，大按钮少打字。</li>
+    <li>AI 助手：设置里填 OpenAI 兼容 API key（BYOK）。</li>
+    <li>换机：旧机「导出 JSON」→ 新机「导入」全量迁移。</li>
+  </ol>
+</section>
+
+<!-- ===================== 4 ===================== -->
+<section id="s4">
+  <h2>4. 从源码构建</h2>
+  <pre><code># 环境：Flutter SDK（Dart >= 3.12.2）+ Android SDK / Windows 桌面工具链
+git clone https://github.com/lvliang666666/ecat.git && cd ecat
+flutter pub get
+flutter test                # 39 用例
+flutter build apk --release        # Android → build/app/outputs/flutter-apk/
+flutter build windows --release    # Windows → build/windows/x64/runner/Release/</code></pre>
+  <div class="warn"><b>Windows 构建两坑</b>：① 必须开启开发者模式，否则插件符号链接创建失败、构建静默挂起；② 国内网络设 <code>PUB_HOSTED_URL=https://pub.flutter-io.cn</code> 与 <code>FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn</code>。</div>
+</section>
+
+<!-- ===================== 5 ===================== -->
+<section id="s5">
+  <h2>5. 移植与数据迁移</h2>
+  <ul>
+    <li>开发环境移植：装 Flutter → clone → pub get → test → build。</li>
+    <li>用户数据：App 内一键 JSON 导出/导入（含全部猫档案与记录）。</li>
+    <li>备份优先级：用户导出的 JSON（不可再生）> 源码（GitHub 已异地）。</li>
+  </ul>
+</section>
+
+<!-- ===================== 6 ===================== -->
+<section id="s6">
+  <h2>6. 技术亮点</h2>
+  <ul>
+    <li><b>猫中心数据隔离</b>：每条记录带 catId，删猫级联清理其日志/提醒/AI 会话——零孤儿数据；</li>
+    <li><b>可靠本地通知</b>：Android 用 inexactAllowWhileIdle（免精确闹钟权限）+ 每日重复匹配；Windows 预排 7 天滚动窗口；开机广播恢复 + 错过补发 SP 标记去重；</li>
+    <li><b>R8 安全发版</b>：core library desugaring + 通知插件 keep 规则——用 mapping.txt 验证 receiver 保持原名，避开「release 版通知静默死亡」经典坑；</li>
+    <li><b>自定义触感系统</b>：CuteTap 包装器（按压缩放 0.96 + selectionClick）全组件覆盖；吞手势的 Material 组件（导航栏/FAB）重画保反馈一致。</li>
+  </ul>
+</section>
+
+<!-- ===================== 7 ===================== -->
+<section id="s7">
+  <h2>7. FAQ</h2>
+  <h4>Q1：支持 iOS 吗？</h4>
+  <p>当前 Android + Windows 双端，iOS 未适配。</p>
+  <h4>Q2：多只猫数据会混吗？</h4>
+  <p>不会——catId 全链路隔离是本项目的核心设计，删猫级联清理。</p>
+  <h4>Q3：Windows 构建卡住不动？</h4>
+  <p>开开发者模式（系统设置 → 开发者选项），否则符号链接失败静默挂起。</p>
+  <h4>Q4：release 版通知不响？</h4>
+  <p>检查 keep 规则是否在（com.dexterous.** 与 gson）——R8 混淆掉 receiver 类名是经典坑，本项目已用 mapping.txt 验证。</p>
+</section>
+
+<footer>
+  eCAT 项目说明书 · v1.7.3 · 2026-11-18 由 S000252（百万大撤离）整理<br>
+  功能与截图详见仓库 README.md（中英双语）
+</footer>
+
+</div>
+</body>
+</html>
